@@ -1,13 +1,9 @@
-import type { Metadata } from "next";
-import { Suspense } from "react";
-import { LibraryPage } from "@/features/codex/library-page";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Thư viện skill mẫu · Codex" };
-
-export default function Page() {
-  return (
-    <Suspense>
-      <LibraryPage />
-    </Suspense>
-  );
+/** Đường cũ /library (thư viện skill) — giữ lại cho liên kết đã có. */
+export default async function Page(props: PageProps<"/library">) {
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(await props.searchParams)) if (typeof v === "string") sp.set(k, v);
+  const qs = sp.toString();
+  redirect(qs ? `/library/skill?${qs}` : "/library/skill");
 }

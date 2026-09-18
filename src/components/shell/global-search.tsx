@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { allTypes, entityHref } from "@/lib/codex/select";
-import type { SkillSeed } from "@/lib/codex/skill-library";
+import { allTypes, entityHref, tdef } from "@/lib/codex/select";
+import { SEED_LIBRARIES, type SeedRow } from "@/lib/codex/seed-libraries";
 import { fold } from "@/lib/text";
 import { cn } from "@/lib/utils";
 import { useCodex } from "@/store/codex-store";
@@ -51,10 +51,13 @@ function SearchBody({ onDone }: { onDone: () => void }) {
   const [q, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const listRef = useRef<HTMLUListElement>(null);
-  const [library, setLibrary] = useState<SkillSeed[] | null>(null);
+  // Dữ liệu thư viện mẫu khá nặng nên chỉ tải khi hộp tìm kiếm mở.
+  const [library, setLibrary] = useState<Record<string, SeedRow[]> | null>(null);
   useEffect(() => {
     let alive = true;
-    void import("@/lib/codex/skill-library").then((m) => alive && setLibrary(m.SKILL_SEED));
+    void Promise.all(SEED_LIBRARIES.map((l) => l.load().then((rows) => [l.k, rows] as const))).then(
+      (all) => alive && setLibrary(Object.fromEntries(all)),
+    );
     return () => {
       alive = false;
     };
@@ -83,14 +86,19 @@ function SearchBody({ onDone }: { onDone: () => void }) {
       }
     for (const el of data.elements)
       if (has(el.name, el.desc)) push({ key: `el:${el.id}`, category: "Hệ nguyên tố", icon: el.icon, title: el.name, sub: el.desc.slice(0, 60), href: "/world" });
-    // Thư viện skill mẫu: chỉ khớp theo tên, tối đa 5 (như Codex).
+    // Thư viện mẫu: chỉ khớp theo tên, tối đa 2 mỗi loại và 8 tất cả — mục trong
+    // truyện của người dùng luôn phải đứng trước mẫu.
     if (library && n.length >= 2) {
-      let k = 0;
-      for (let i = 0; i < library.length && k < 5; i++) {
-        const s = library[i];
-        if (!fold(s[0]).includes(n)) continue;
-        k++;
-        push({ key: `lib:${i}`, category: "Thư viện skill mẫu", icon: "📚", title: s[0], sub: s[1], href: `/library?open=${i}` });
+      let budget = 8;
+      for (const [k, rows] of Object.entries(library)) {
+        const label = tdef(data, k)?.l ?? k;
+        let found = 0;
+        for (let i = 0; i < rows.length && found < 2 && budget > 0; i++) {
+          if (!fold(rows[i][0]).includes(n)) continue;
+          found++;
+          budget--;
+          push({ key: `lib:${k}:${i}`, category: `Thư viện mẫu · ${label}`, icon: "📚", title: rows[i][0], sub: rows[i][1], href: `/library/${k}?open=${i}` });
+        }
       }
     }
     return out;

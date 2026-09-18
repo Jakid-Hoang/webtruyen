@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { SearchBox } from "@/components/kit/page";
 import { useUrlState } from "@/hooks/use-url-state";
 import { cn } from "@/lib/utils";
 import { matches } from "@/lib/text";
 import type { Entity } from "@/lib/codex/schema";
 import { elementName, entityColors, listInEra, tdef } from "@/lib/codex/select";
+import { seedLibrary } from "@/lib/codex/seed-libraries";
 import type { TypeDef } from "@/lib/codex/types";
 import { useCodex } from "@/store/codex-store";
 import { EntityDetail } from "./entity-detail";
@@ -63,9 +64,16 @@ export function EntityPage({ typeKey }: { typeKey: string }) {
             {inEra.length} mục trong thời đại này · {total} tổng cộng
           </p>
         </div>
-        <Button onClick={create}>
-          <Plus /> Tạo {t.l.toLowerCase()}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {seedLibrary(t.k) && (
+            <Link href={`/library/${t.k}`} className={buttonVariants({ variant: "outline" })}>
+              📚 Thư viện mẫu
+            </Link>
+          )}
+          <Button onClick={create}>
+            <Plus /> Tạo {t.l.toLowerCase()}
+          </Button>
+        </div>
       </header>
 
       <div className="grid items-start gap-4 lg:grid-cols-[17rem_minmax(0,1fr)]">

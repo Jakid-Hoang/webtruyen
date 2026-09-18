@@ -19,7 +19,7 @@ npm run dev                  # http://localhost:3000
 | `src/lib/codex/types.ts` | **`TYPES`** — 15 loại mục khai báo bằng dữ liệu. Thêm loại mục = thêm một object, không viết trang riêng |
 | `src/lib/codex/schema.ts` | Schema zod của `S` (world, eras, elements, counters, ent, custom, ignore), đọc được JSON Codex |
 | `src/lib/codex/algorithms.ts` | Chép nguyên từ Codex: **`buildIndex`** (chỉ mục tự động), **`candidates`** (dò tên lạ + danh sách `STOP`), **`mix`** (hợp thành skill), **`check`** (kiểm tra mâu thuẫn). Đã chỉnh cho tiếng Việt — đừng viết lại |
-| `src/data/skill-seed.json` | 914 skill mẫu (`SKILL_SEED` của Codex), 24 thư mục. **Chỉ đọc**; “Đưa vào truyện” tạo bản sao |
+| `src/data/skill-seed.json`, `src/data/seeds/*.json` | **Thư viện mẫu**: 914 skill (`SKILL_SEED` của Codex) + 970 mẫu cho 11 loại khác (vùng đất, chủng tộc, cấp bậc, quái vật, thần hệ, thế lực, trường phái, thần khí, vật phẩm, lãnh vực, khế ước). **Chỉ đọc**; “Đưa vào truyện” tạo bản sao. Khai báo cột ở `src/lib/codex/seed-libraries.ts`, một trang dùng chung cho cả 12 thư viện |
 | `src/store/codex-store.ts` | Store wiki + hoàn tác, dọn liên kết khi xoá |
 | `src/features/codex/*` | Trang thế giới & hệ, trang chung cho mọi loại mục, đọc & kiểm tra, dò tên lạ, thư viện skill, hợp thành, thống kê |
 | `docs/` | `BANGIAO.md` (tài liệu bàn giao) và `codex.html` (bản gốc JS thuần) để tham khảo |

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BookOpen, PenLine, ShieldAlert } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { EmptyState, PageHeader } from "@/components/kit/page";
 import { useUrlState } from "@/hooks/use-url-state";
@@ -152,9 +152,9 @@ export function ReadPage() {
           <Button variant="outline" size="sm" onClick={() => setWarnings(check(data, ix.index, ix.source.chapters))}>
             <ShieldAlert /> Kiểm tra mâu thuẫn
           </Button>
-          <Button variant="ghost" size="sm" nativeButton={false} render={<Link href={`/write/${story.id}?ch=${chapter.id}`} />}>
+          <Link href={`/write/${story.id}?ch=${chapter.id}`} className={buttonVariants({ variant: "ghost", size: "sm" })}>
             <PenLine /> Sửa chương
-          </Button>
+          </Link>
         </div>
         {warnings &&
           (warnings.length ? (
