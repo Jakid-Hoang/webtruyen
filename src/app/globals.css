@@ -49,73 +49,82 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+ * Bảng màu: coolors.co/palette/edede9-d6ccc2-f5ebe0-e3d5ca-d5bdaf
+ *   #f5ebe0 kem · #edede9 xám ấm · #e3d5ca be · #d6ccc2 nâu nhạt · #d5bdaf nâu đất
+ * Năm màu này đều rất nhạt nên chỉ dùng cho nền, thẻ và viền. Chữ và nút dùng
+ * các sắc nâu đậm cùng tông (#3b322c, #6f6259, #6b5647) để đủ tương phản đọc
+ * được; mọi cặp màu chữ/nền đều đạt WCAG AA (≥4.5), viền ô nhập ≥3.
+ * Đổi màu thì kiểm tra lại tương phản, đừng lấy thẳng năm màu trên làm màu chữ.
+ */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.52 0.22 293);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --background: #edede9;
+  --foreground: #3b322c;
+  --card: #f5ebe0;
+  --card-foreground: #3b322c;
+  --popover: #f5ebe0;
+  --popover-foreground: #3b322c;
+  --primary: #6b5647;
+  --primary-foreground: #f5ebe0;
+  --secondary: #e3d5ca;
+  --secondary-foreground: #3b322c;
+  --muted: #e3d5ca;
+  --muted-foreground: #60554d;
+  --accent: #d6ccc2;
+  --accent-foreground: #3b322c;
+  --destructive: #a33a2b;
+  --border: #d6ccc2;
+  --input: #93806f;
+  --ring: #6b5647;
+  --chart-1: #d5bdaf;
+  --chart-2: #b99e8c;
+  --chart-3: #9b7f6b;
+  --chart-4: #7d6352;
+  --chart-5: #5b4739;
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: #e3d5ca;
+  --sidebar-foreground: #3b322c;
+  --sidebar-primary: #6b5647;
+  --sidebar-primary-foreground: #f5ebe0;
+  --sidebar-accent: #f5ebe0;
+  --sidebar-accent-foreground: #3b322c;
+  --sidebar-border: #d6ccc2;
+  --sidebar-ring: #6b5647;
 }
 
+/* Bản tối: nâu đen cùng tông, lấy kem và nâu đất của bảng màu làm chữ và nhấn. */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.62 0.2 293);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #241f1c;
+  --foreground: #f5ebe0;
+  --card: #2e2823;
+  --card-foreground: #f5ebe0;
+  --popover: #2e2823;
+  --popover-foreground: #f5ebe0;
+  --primary: #d5bdaf;
+  --primary-foreground: #241f1c;
+  --secondary: #3a322c;
+  --secondary-foreground: #f5ebe0;
+  --muted: #3a322c;
+  --muted-foreground: #c9bcb0;
+  --accent: #463c34;
+  --accent-foreground: #f5ebe0;
+  --destructive: #e0876f;
+  --border: #4a4039;
+  --input: #87796d;
+  --ring: #d5bdaf;
+  --chart-1: #d5bdaf;
+  --chart-2: #c3a794;
+  --chart-3: #a98c78;
+  --chart-4: #8a705d;
+  --chart-5: #6b5647;
+  --sidebar: #2b2521;
+  --sidebar-foreground: #f5ebe0;
+  --sidebar-primary: #d5bdaf;
+  --sidebar-primary-foreground: #241f1c;
+  --sidebar-accent: #3a322c;
+  --sidebar-accent-foreground: #f5ebe0;
+  --sidebar-border: #4a4039;
+  --sidebar-ring: #d5bdaf;
 }
 
 @layer base {
