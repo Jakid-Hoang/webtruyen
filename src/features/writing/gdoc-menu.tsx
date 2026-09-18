@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { storyToHtml } from "@/lib/writing/convert";
-import { getOrderedChapters, updateStory, type Story } from "@/lib/writing/db";
+import { getOrderedChapters, markGDocSynced, patchGDoc, updateStory, type Story } from "@/lib/writing/db";
 import {
   createDocFromHtml,
   getAccessToken,
@@ -188,7 +188,7 @@ export function GDocMenu({ story, autoSync, onPulled }: { story: Story; autoSync
         run(async () => {
           const chapters = await getOrderedChapters(story.id);
           const res = await updateDocFromHtml(linked.fileId, storyToHtml(story.title, chapters));
-          await updateStory(story.id, { gdoc: { ...linked, url: res.webViewLink, lastSyncedAt: Date.now(), lastRemoteModified: res.modifiedTime } });
+          await markGDocSynced(story.id, res);
           toast.success("Đã đẩy lên Google Docs.");
         });
       if (linked.lastRemoteModified && meta.modifiedTime !== linked.lastRemoteModified) {
@@ -212,7 +212,7 @@ export function GDocMenu({ story, autoSync, onPulled }: { story: Story; autoSync
         confirmLabel: "Bật và đồng bộ ngay",
         onConfirm: () =>
           void run(async () => {
-            await updateStory(story.id, { gdoc: { ...linked, autoSync: true, url: meta.webViewLink, lastRemoteModified: meta.modifiedTime } });
+            await patchGDoc(story.id, { autoSync: true, url: meta.webViewLink, lastRemoteModified: meta.modifiedTime });
             await autoSync.pushNow(true);
             toast.success("Đã bật tự đồng bộ.");
           }),
@@ -248,7 +248,7 @@ export function GDocMenu({ story, autoSync, onPulled }: { story: Story; autoSync
               <ExternalLink /> Mở Doc
             </DropdownMenuItem>
             {linked.autoSync ? (
-              <DropdownMenuItem onClick={() => void updateStory(story.id, { gdoc: { ...linked, autoSync: false } })}>
+              <DropdownMenuItem onClick={() => void patchGDoc(story.id, { autoSync: false })}>
                 <CloudOff /> Tắt tự đồng bộ khi viết
               </DropdownMenuItem>
             ) : (

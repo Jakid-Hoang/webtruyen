@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { storyToHtml } from "@/lib/writing/convert";
-import { getOrderedChapters, updateStory, type Chapter, type Story } from "@/lib/writing/db";
+import { getOrderedChapters, markGDocSynced, writingDb, type Chapter, type Story } from "@/lib/writing/db";
 import { NeedsAuthError, getDocMeta, googleConfigured, updateDocFromHtml, withoutPopup } from "@/lib/writing/google";
 
 /** Wait this long after the last change before pushing (keeps Drive calls low while typing). */
@@ -62,7 +62,13 @@ export function useGDocAutoSync(story: Story | null, chapters: Chapter[]) {
     setState({ kind: "syncing" });
     try {
       await withoutPopup(async () => {
-        const gdoc = s.gdoc!;
+        // Always act on the stored link, not the render-time copy (it may be stale
+        // right after auto-sync was switched on).
+        const gdoc = (await writingDb().stories.get(s.id))?.gdoc;
+        if (!gdoc || (!force && !gdoc.autoSync)) {
+          setState({ kind: "idle" });
+          return;
+        }
         const meta = await getDocMeta(gdoc.fileId);
         const remote = Date.parse(meta.modifiedTime);
         const known = Date.parse(gdoc.lastRemoteModified || "");
@@ -74,7 +80,7 @@ export function useGDocAutoSync(story: Story | null, chapters: Chapter[]) {
         }
         const chapters = await getOrderedChapters(s.id);
         const result = await updateDocFromHtml(gdoc.fileId, storyToHtml(s.title, chapters));
-        await updateStory(s.id, { gdoc: { ...gdoc, url: result.webViewLink || gdoc.url, lastSyncedAt: Date.now(), lastRemoteModified: result.modifiedTime } });
+        await markGDocSynced(s.id, result);
         setState({ kind: "synced", at: Date.now() });
       });
     } catch (e) {

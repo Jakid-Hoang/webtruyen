@@ -118,6 +118,28 @@ export async function updateStory(storyId: string, patch: Partial<Story>) {
   await writingDb().stories.update(storyId, { ...patch, updatedAt: Date.now() });
 }
 
+/**
+ * Record a successful Docs sync. Updates only the sync fields (key paths) so it
+ * can never clobber a concurrent change such as toggling auto-sync.
+ */
+export async function markGDocSynced(storyId: string, remote: { modifiedTime: string; webViewLink?: string }) {
+  await patchGDoc(storyId, {
+    lastSyncedAt: Date.now(),
+    lastRemoteModified: remote.modifiedTime,
+    ...(remote.webViewLink ? { url: remote.webViewLink } : {}),
+  });
+}
+
+/** Update individual fields of an existing Docs link, applied to the latest stored row. */
+export async function patchGDoc(storyId: string, fields: Partial<GDocLink>) {
+  await writingDb()
+    .stories.where("id")
+    .equals(storyId)
+    .modify((s) => {
+      if (s.gdoc) Object.assign(s.gdoc, fields);
+    });
+}
+
 export async function updateChapter(chapterId: string, patch: Partial<Chapter>) {
   await writingDb().chapters.update(chapterId, { ...patch, updatedAt: Date.now() });
 }
