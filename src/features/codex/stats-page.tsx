@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/kit/page";
 import { allTypes, elementName, entityName } from "@/lib/codex/select";
 import { writingDb } from "@/lib/writing/db";
 import { useCodex } from "@/store/codex-store";
+import { useCodexIndex } from "./use-codex-index";
 
 type Datum = { label: string; value: number };
 
@@ -66,6 +67,9 @@ export function StatsPage() {
     };
   }, [data]);
 
+  const ix = useCodexIndex();
+  const appear = (data.ent.char ?? []).map((c) => ({ label: c.name, value: ix?.index.by[`char:${c.id}`]?.length ?? 0 }));
+
   const era = data.eras.find((e) => e.id === data.eraId);
 
   return (
@@ -105,7 +109,9 @@ export function StatsPage() {
           <Bars data={top(s.relations, 6)} />
         </Panel>
       </div>
-      <p className="text-xs text-muted-foreground">“Xuất hiện nhiều nhất trong truyện” sẽ có ở bước 2 (chỉ mục tự động).</p>
+      <Panel title="Xuất hiện nhiều nhất trong truyện">
+        <Bars data={top(appear)} />
+      </Panel>
     </div>
   );
 }

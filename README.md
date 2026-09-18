@@ -18,11 +18,16 @@ npm run dev                  # http://localhost:3000
 |---|---|
 | `src/lib/codex/types.ts` | **`TYPES`** — 15 loại mục khai báo bằng dữ liệu. Thêm loại mục = thêm một object, không viết trang riêng |
 | `src/lib/codex/schema.ts` | Schema zod của `S` (world, eras, elements, counters, ent, custom, ignore), đọc được JSON Codex |
+| `src/lib/codex/algorithms.ts` | Chép nguyên từ Codex: **`buildIndex`** (chỉ mục tự động), **`candidates`** (dò tên lạ + danh sách `STOP`), **`mix`** (hợp thành skill), **`check`** (kiểm tra mâu thuẫn). Đã chỉnh cho tiếng Việt — đừng viết lại |
+| `src/data/skill-seed.json` | 914 skill mẫu (`SKILL_SEED` của Codex), 24 thư mục. **Chỉ đọc**; “Đưa vào truyện” tạo bản sao |
 | `src/store/codex-store.ts` | Store wiki + hoàn tác, dọn liên kết khi xoá |
-| `src/features/codex/*` | Trang thế giới & hệ, trang chung cho mọi loại mục, loại mục tự tạo, thống kê |
+| `src/features/codex/*` | Trang thế giới & hệ, trang chung cho mọi loại mục, đọc & kiểm tra, dò tên lạ, thư viện skill, hợp thành, thống kê |
+| `docs/` | `BANGIAO.md` (tài liệu bàn giao) và `codex.html` (bản gốc JS thuần) để tham khảo |
 | `src/lib/writing/*` | Viết truyện: lưu trữ (Dexie), chuyển đổi HTML/DOCX/MD/TXT, Google Drive |
 | `src/features/writing/*` | Giao diện viết truyện: danh sách chương, editor Tiptap, panel wiki, nhập/xuất |
 | `src/app/api/gdoc` | Đọc Google Doc công khai (chạy phía server vì CORS) |
+
+**Kiểm thử nhanh sau mỗi lần sửa:** làm theo `docs/BANGIAO.md` §9 (Lyra 3 lần · 1 chương, dò tên lạ không ra “Nhưng”, thư mục Boss = 32 thẻ, bốc ngẫu nhiên = 12, xuất/nạp JSON y nguyên).
 
 Dữ liệu hiện lưu trên trình duyệt (IndexedDB): wiki trong DB `character_wiki` (khóa `codex_v1`), truyện trong DB `character_wiki_writing`. Nút ⬇/⬆ trên thanh trên cùng tải/nạp file JSON — luôn giữ hoạt động, đó là đường thoát khi dữ liệu có sự cố.
 

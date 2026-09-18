@@ -12,6 +12,7 @@ import { elementColor, elementName, entityColors, entityHref, entityName, tdef }
 import { REL_KINDS, type FieldDef, type TypeDef } from "@/lib/codex/types";
 import { askConfirm } from "@/store/confirm-store";
 import { useCodex } from "@/store/codex-store";
+import { EntityHits } from "./entity-hits";
 import { RefPicker } from "./ref-picker";
 
 function Panel({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
@@ -302,9 +303,7 @@ export function EntityDetail({ t, e, onDeleted }: { t: TypeDef; e: Entity; onDel
       )}
 
       <Panel title="Nơi xuất hiện trong truyện">
-        <p className="text-sm text-muted-foreground">
-          Đang xây dựng ở bước 2: hệ thống sẽ tự dò tên và biệt danh trong mọi chương, hiện “Chương · đoạn · đoạn trích”, bấm vào để nhảy tới đúng chỗ.
-        </p>
+        <EntityHits tk={t.k} id={e.id} />
       </Panel>
 
       {activeRef && (

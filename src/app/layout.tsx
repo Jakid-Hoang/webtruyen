@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Be_Vietnam_Pro, Geist_Mono } from "next/font/google";
+import { Be_Vietnam_Pro, Geist_Mono, Spectral } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,6 +9,13 @@ const sans = Be_Vietnam_Pro({
   variable: "--font-app-sans",
   subsets: ["latin", "vietnamese"],
   weight: ["400", "500", "600", "700", "800"],
+});
+
+/** Chữ có chân cho tên mục và trang đọc (như Codex). Cần subset vietnamese, Georgia thiếu dấu. */
+const serif = Spectral({
+  variable: "--font-app-serif",
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "600"],
 });
 
 const mono = Geist_Mono({
@@ -26,7 +33,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="vi"
       suppressHydrationWarning
-      className={`${sans.variable} ${mono.variable} h-full antialiased`}
+      className={`${sans.variable} ${serif.variable} ${mono.variable} h-full antialiased`}
     >
       <body className="min-h-full">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>

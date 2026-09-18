@@ -1,53 +1,56 @@
 "use client";
 
 import { useMemo } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { entityHref, findEntity } from "@/lib/codex/select";
+import { buildIndex, candidates, toParas, type IndexChapter } from "@/lib/codex/algorithms";
+import { entityHref, findEntity, tdef } from "@/lib/codex/select";
 import { useCodex } from "@/store/codex-store";
-import { findUnknownNames, type WikiEntry } from "./editor/wiki-entries";
 
-/** Panel phải: mục wiki xuất hiện trong chương đang mở + gợi ý tên lạ. */
-export function WikiPanel({ text, entries }: { text: string; entries: WikiEntry[] }) {
+/** Panel phải: mục wiki nhận ra trong chương đang mở + tên lạ (cùng thuật toán với chỉ mục và Dò tên lạ). */
+export function WikiPanel({ text }: { text: string }) {
   const router = useRouter();
   const data = useCodex((s) => s.data);
   const addEntity = useCodex((s) => s.addEntity);
 
-  // Gộp tên + biệt danh của cùng một mục, cộng số lần xuất hiện.
+  const chapter = useMemo<IndexChapter>(() => ({ id: "cur", storyId: "", storyTitle: "", ci: 0, title: "", paras: toParas(text) }), [text]);
+
   const present = useMemo(() => {
-    const seen = new Map<string, { entry: WikiEntry; count: number }>();
-    for (const e of entries) {
-      const re = new RegExp(`(?<![\\p{L}\\p{N}])${e.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}\\p{N}])`, "gu");
-      const count = text.match(re)?.length ?? 0;
-      if (!count) continue;
-      const key = `${e.kind}:${e.id}`;
-      const prev = seen.get(key);
-      seen.set(key, { entry: prev?.entry ?? e, count: (prev?.count ?? 0) + count });
+    const counts = new Map<string, { tk: string; id: string; count: number }>();
+    for (const m of buildIndex(data, [chapter]).ch.cur.marks) {
+      const key = `${m.tk}:${m.id}`;
+      const prev = counts.get(key);
+      counts.set(key, { tk: m.tk, id: m.id, count: (prev?.count ?? 0) + 1 });
     }
-    return [...seen.values()].sort((a, b) => b.count - a.count);
-  }, [text, entries]);
+    return [...counts.values()].sort((a, b) => b.count - a.count);
+  }, [data, chapter]);
 
-  const unknown = useMemo(() => findUnknownNames(text, new Set(entries.map((e) => e.name))), [text, entries]);
+  const unknown = useMemo(() => candidates(data, [chapter]).slice(0, 8), [data, chapter]);
 
-  const characters = present.filter((p) => p.entry.kind === "char");
-  const others = present.filter((p) => p.entry.kind !== "char");
-  const open = (e: WikiEntry) => router.push(entityHref(e.kind, e.id));
+  const characters = present.filter((p) => p.tk === "char");
+  const others = present.filter((p) => p.tk !== "char");
 
   return (
     <div className="grid content-start gap-5 p-3 text-sm">
       <section className="grid gap-1.5">
         <h3 className="text-[11px] font-bold tracking-widest text-muted-foreground uppercase">Nhân vật trong chương ({characters.length})</h3>
         {characters.length === 0 && <p className="text-xs text-muted-foreground italic">Chưa nhận ra nhân vật nào. Gõ @ để chèn.</p>}
-        {characters.map(({ entry, count }) => {
-          const c = findEntity(data, "char", entry.id);
-          const info = [c?.f.role, c?.f.status, c?.f.rank && `bậc ${c.f.rank}`].filter(Boolean).join(" · ");
+        {characters.map(({ id, count }) => {
+          const c = findEntity(data, "char", id);
+          if (!c) return null;
+          const info = [c.f.role, c.f.status, c.f.rank && `bậc ${c.f.rank}`].filter(Boolean).join(" · ");
           return (
-            <div key={entry.id} className="grid gap-0.5 rounded-lg border p-2">
+            <div key={id} className="grid gap-0.5 rounded-lg border p-2">
               <div className="flex items-center gap-2">
-                <button type="button" onClick={() => open(entry)} className="min-w-0 flex-1 truncate text-left font-semibold hover:text-primary hover:underline">
-                  {entry.icon} {entry.canonical}
+                <button
+                  type="button"
+                  onClick={() => router.push(entityHref("char", id))}
+                  className="min-w-0 flex-1 truncate text-left font-semibold hover:text-primary hover:underline"
+                >
+                  {c.icon || "👤"} {c.name}
                 </button>
                 <span className="text-[11px] text-muted-foreground">×{count}</span>
               </div>
@@ -60,46 +63,55 @@ export function WikiPanel({ text, entries }: { text: string; entries: WikiEntry[
       {others.length > 0 && (
         <section className="grid gap-1">
           <h3 className="text-[11px] font-bold tracking-widest text-muted-foreground uppercase">Khác trong wiki</h3>
-          {others.map(({ entry, count }) => (
-            <button
-              key={`${entry.kind}:${entry.id}`}
-              type="button"
-              onClick={() => open(entry)}
-              title={entry.typeLabel}
-              className="flex items-center gap-2 rounded-md px-1.5 py-1 text-left hover:bg-muted"
-            >
-              <span>{entry.icon}</span>
-              <span className="min-w-0 flex-1 truncate">{entry.canonical}</span>
-              <span className="text-[11px] text-muted-foreground">×{count}</span>
-            </button>
-          ))}
+          {others.map(({ tk, id, count }) => {
+            const t = tdef(data, tk);
+            const e = findEntity(data, tk, id);
+            if (!t || !e) return null;
+            return (
+              <button
+                key={`${tk}:${id}`}
+                type="button"
+                onClick={() => router.push(entityHref(tk, id))}
+                title={t.l}
+                className="flex items-center gap-2 rounded-md px-1.5 py-1 text-left hover:bg-muted"
+              >
+                <span>{e.icon || t.ic}</span>
+                <span className="min-w-0 flex-1 truncate">{e.name}</span>
+                <span className="text-[11px] text-muted-foreground">×{count}</span>
+              </button>
+            );
+          })}
         </section>
       )}
 
-      {unknown.length > 0 && (
-        <section className="grid gap-1">
-          <h3 className="text-[11px] font-bold tracking-widest text-muted-foreground uppercase">Tên lạ xuất hiện nhiều</h3>
-          <p className="text-[11px] text-muted-foreground">Có thể là nhân vật chưa có trong wiki.</p>
-          {unknown.map((u) => (
-            <div key={u.name} className="flex items-center gap-2 rounded-md px-1.5 py-1">
-              <span className="min-w-0 flex-1 truncate">{u.name}</span>
-              <span className="text-[11px] text-muted-foreground">×{u.count}</span>
+      <section className="grid gap-1">
+        <h3 className="text-[11px] font-bold tracking-widest text-muted-foreground uppercase">Tên lạ trong chương</h3>
+        {unknown.length === 0 ? (
+          <p className="text-xs text-muted-foreground italic">Không thấy tên lạ nào.</p>
+        ) : (
+          unknown.map((u) => (
+            <div key={u.txt} className="flex items-center gap-2 rounded-md px-1.5 py-1">
+              <span className="min-w-0 flex-1 truncate">{u.txt}</span>
+              <span className="text-[11px] text-muted-foreground">×{u.n}</span>
               <Button
                 variant="ghost"
                 size="icon-xs"
-                aria-label={`Tạo nhân vật ${u.name}`}
+                aria-label={`Tạo nhân vật ${u.txt}`}
                 title="Tạo nhân vật"
                 onClick={() => {
-                  addEntity("char", { name: u.name });
-                  toast.success(`Đã tạo nhân vật “${u.name}” trong wiki.`);
+                  addEntity("char", { name: u.txt });
+                  toast.success(`Đã tạo nhân vật “${u.txt}” trong wiki.`);
                 }}
               >
                 <UserPlus />
               </Button>
             </div>
-          ))}
-        </section>
-      )}
+          ))
+        )}
+        <Link href="/scan" className="px-1.5 text-xs font-semibold text-primary hover:underline">
+          Dò toàn bộ truyện →
+        </Link>
+      </section>
     </div>
   );
 }

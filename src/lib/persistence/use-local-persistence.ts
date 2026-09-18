@@ -38,12 +38,16 @@ export function useLocalPersistence() {
     let dirty = false;
     let unsubscribe: (() => void) | undefined;
 
+    // Chỉ coi là “đã lưu” khi IndexedDB ghi xong và dữ liệu chưa đổi thêm: nếu trang
+    // bị đóng giữa lúc đang ghi, pagehide vẫn thấy dirty và chép bản dự phòng.
     const flush = () => {
-      dirty = false;
       const { data, setSaveStatus } = useCodex.getState();
       void saveLocal(data).then((ok) => {
-        setSaveStatus(ok ? "saved" : "error");
-        if (ok) clearPending();
+        if (!ok) return setSaveStatus("error");
+        if (useCodex.getState().data !== data) return;
+        dirty = false;
+        setSaveStatus("saved");
+        clearPending();
       });
     };
 

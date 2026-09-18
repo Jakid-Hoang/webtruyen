@@ -232,7 +232,7 @@ export function StoryWorkspace({ storyId }: { storyId: string }) {
 
         {panelOpen && active && (
           <aside className="hidden w-72 shrink-0 overflow-y-auto border-l lg:block" aria-label="Wiki trong chương">
-            <WikiPanel text={text} entries={entries} />
+            <WikiPanel text={text} />
           </aside>
         )}
       </div>

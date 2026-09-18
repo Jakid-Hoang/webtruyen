@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { allTypes, entityHref } from "@/lib/codex/select";
+import type { SkillSeed } from "@/lib/codex/skill-library";
 import { fold } from "@/lib/text";
 import { cn } from "@/lib/utils";
 import { useCodex } from "@/store/codex-store";
@@ -50,6 +51,14 @@ function SearchBody({ onDone }: { onDone: () => void }) {
   const [q, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const listRef = useRef<HTMLUListElement>(null);
+  const [library, setLibrary] = useState<SkillSeed[] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void import("@/lib/codex/skill-library").then((m) => alive && setLibrary(m.SKILL_SEED));
+    return () => {
+      alive = false;
+    };
+  }, []);
   const setQ = (v: string) => {
     setQuery(v);
     setActive(0);
@@ -74,8 +83,18 @@ function SearchBody({ onDone }: { onDone: () => void }) {
       }
     for (const el of data.elements)
       if (has(el.name, el.desc)) push({ key: `el:${el.id}`, category: "Hệ nguyên tố", icon: el.icon, title: el.name, sub: el.desc.slice(0, 60), href: "/world" });
+    // Thư viện skill mẫu: chỉ khớp theo tên, tối đa 5 (như Codex).
+    if (library && n.length >= 2) {
+      let k = 0;
+      for (let i = 0; i < library.length && k < 5; i++) {
+        const s = library[i];
+        if (!fold(s[0]).includes(n)) continue;
+        k++;
+        push({ key: `lib:${i}`, category: "Thư viện skill mẫu", icon: "📚", title: s[0], sub: s[1], href: `/library?open=${i}` });
+      }
+    }
     return out;
-  }, [q, data]);
+  }, [q, data, library]);
 
   useEffect(() => {
     listRef.current?.querySelector(`[data-index="${active}"]`)?.scrollIntoView({ block: "nearest" });
