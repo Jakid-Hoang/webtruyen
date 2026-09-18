@@ -1,5 +1,4 @@
 import Dexie, { type EntityTable } from "dexie";
-import type { WorldData } from "@/lib/schema/world";
 
 interface KvRow {
   key: string;
@@ -7,7 +6,8 @@ interface KvRow {
   updatedAt: number;
 }
 
-const WORLD_KEY = "world_v1";
+/** Khóa lưu wiki fantasy (bản tu tiên cũ nằm ở "world_v1" và không bị đụng tới). */
+export const CODEX_KEY = "codex_v1";
 
 class LocalDb extends Dexie {
   kv!: EntityTable<KvRow, "key">;
@@ -24,20 +24,19 @@ function getDb() {
   return db;
 }
 
-/** Returns the raw stored world (unvalidated), or null if nothing saved / IndexedDB unavailable. */
-export async function loadLocalWorld(): Promise<unknown | null> {
+/** Dữ liệu thô đã lưu (chưa kiểm tra), hoặc null nếu chưa có / IndexedDB không dùng được. */
+export async function loadLocal(key = CODEX_KEY): Promise<unknown | null> {
   try {
-    const row = await getDb().kv.get(WORLD_KEY);
-    return row?.value ?? null;
+    return (await getDb().kv.get(key))?.value ?? null;
   } catch (err) {
     console.warn("[local] load failed", err);
     return null;
   }
 }
 
-export async function saveLocalWorld(data: WorldData): Promise<boolean> {
+export async function saveLocal(value: unknown, key = CODEX_KEY): Promise<boolean> {
   try {
-    await getDb().kv.put({ key: WORLD_KEY, value: data, updatedAt: Date.now() });
+    await getDb().kv.put({ key, value, updatedAt: Date.now() });
     return true;
   } catch (err) {
     console.warn("[local] save failed", err);

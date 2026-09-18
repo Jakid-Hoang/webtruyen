@@ -2,17 +2,16 @@
 
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { normalizeWorld } from "@/lib/schema/world";
-import { loadLocalWorld, saveLocalWorld } from "@/lib/persistence/local";
-import { useWorldStore } from "@/store/world-store";
+import { normalizeCodex } from "@/lib/codex/schema";
+import { loadLocal, saveLocal } from "@/lib/persistence/local";
+import { useCodex } from "@/store/codex-store";
 
 const SAVE_DEBOUNCE_MS = 400;
 /**
- * IndexedDB writes are async and may not finish while the page unloads, so an
- * edit made just before closing/reloading is also written synchronously here
- * and replayed on the next load.
+ * IndexedDB ghi bất đồng bộ nên có thể chưa kịp xong khi tắt/tải lại trang.
+ * Thay đổi cuối được ghi đồng bộ vào đây và phát lại ở lần mở sau.
  */
-const PENDING_KEY = "character_wiki_pending_v1";
+const PENDING_KEY = "codex_pending_v1";
 
 function readPending(): unknown | null {
   try {
@@ -31,7 +30,7 @@ function clearPending() {
   }
 }
 
-/** Load the world from IndexedDB once, then auto-save every change (debounced). */
+/** Nạp wiki từ IndexedDB một lần, rồi tự lưu mọi thay đổi (gom 400ms). */
 export function useLocalPersistence() {
   useEffect(() => {
     let cancelled = false;
@@ -41,29 +40,28 @@ export function useLocalPersistence() {
 
     const flush = () => {
       dirty = false;
-      const { data, setSaveStatus } = useWorldStore.getState();
-      void saveLocalWorld(data).then((ok) => {
+      const { data, setSaveStatus } = useCodex.getState();
+      void saveLocal(data).then((ok) => {
         setSaveStatus(ok ? "saved" : "error");
         if (ok) clearPending();
       });
     };
 
     const pending = readPending();
-    (pending ? Promise.resolve(pending) : loadLocalWorld()).then((raw) => {
+    (pending ? Promise.resolve(pending) : loadLocal()).then((raw) => {
       if (cancelled) return;
-      const store = useWorldStore.getState();
+      const store = useCodex.getState();
       if (raw) {
-        const result = normalizeWorld(raw);
+        const result = normalizeCodex(raw);
         if (result.ok) store.replaceData(result.data);
         else toast.error(`Dữ liệu lưu trên máy bị lỗi: ${result.error}`);
       } else {
-        useWorldStore.temporal.getState().clear();
+        useCodex.temporal.getState().clear();
       }
       store.setHydrated();
-      // Persist a replayed pending snapshot into IndexedDB right away.
       if (pending) flush();
 
-      unsubscribe = useWorldStore.subscribe((state, prev) => {
+      unsubscribe = useCodex.subscribe((state, prev) => {
         if (state.data === prev.data) return;
         dirty = true;
         state.setSaveStatus("saving");
@@ -75,7 +73,7 @@ export function useLocalPersistence() {
     const onHide = () => {
       if (!dirty) return;
       try {
-        localStorage.setItem(PENDING_KEY, JSON.stringify(useWorldStore.getState().data));
+        localStorage.setItem(PENDING_KEY, JSON.stringify(useCodex.getState().data));
       } catch {
         /* quota / private mode: fall back to the async write below */
       }

@@ -1,44 +1,40 @@
 "use client";
 
 import { useMemo } from "react";
-import { MENTION_KINDS, type MentionKind } from "@/lib/writing/schema";
-import { useActiveEra } from "@/store/world-store";
+import { allTypes } from "@/lib/codex/select";
+import { useCodex } from "@/store/codex-store";
 
 export interface WikiEntry {
-  kind: MentionKind;
+  /** Khóa loại mục (char, skill, land…). */
+  kind: string;
   id: string;
+  /** Tên hoặc một biệt danh — mỗi cách gọi là một entry riêng để dò. */
   name: string;
+  /** Tên chính (khi `name` là biệt danh). */
+  canonical: string;
+  icon: string;
+  typeLabel: string;
   sub?: string;
 }
 
-/** Every mentionable/highlightable wiki entity of the active era. */
+/** Mọi mục trong wiki có thể @chèn / tô sáng: tên + từng biệt danh. */
 export function useWikiEntries(): WikiEntry[] {
-  const era = useActiveEra();
+  const data = useCodex((s) => s.data);
   return useMemo(() => {
     const out: WikiEntry[] = [];
-    const push = (kind: MentionKind, id: string, name: string, sub?: string) => name.trim() && out.push({ kind, id, name: name.trim(), sub });
-    for (const c of era.characters) {
-      push("c", c.id, c.name, c.cultivation);
-      if (c.nickname) push("c", c.id, c.nickname, `Biệt danh của ${c.name}`);
-    }
-    for (const l of era.worldStructure) {
-      push("l", l.id, l.name);
-      for (const f of l.factions) push("f", f.id, f.name, l.name);
-    }
-    for (const a of era.cultivationArts) push("a", a.id, a.name, a.rank);
-    for (const t of era.treasures) push("t", t.id, t.name, t.rank);
-    for (const s of era.skills) push("s", s.id, s.name, s.rank);
-    for (const r of era.races) push("r", r.id, r.name, r.alias);
+    for (const t of allTypes(data))
+      for (const e of data.ent[t.k] ?? []) {
+        const base = { kind: t.k, id: e.id, canonical: e.name, icon: e.icon || t.ic, typeLabel: t.l };
+        const names = [e.name, ...e.aliases.split(",")].map((s) => s.trim()).filter((s) => s.length > 1);
+        for (const n of new Set(names)) out.push({ ...base, name: n, sub: n === e.name ? e.aliases || undefined : `Biệt danh của ${e.name}` });
+      }
     return out;
-  }, [era]);
+  }, [data]);
 }
 
-export const kindMeta = (k: MentionKind) => MENTION_KINDS[k];
-
 /**
- * Capitalised multi-word sequences (likely proper names) that appear often but
- * are not in the wiki. Heuristic: 2–4 Capitalised words, ≥3 occurrences, and at
- * least one occurrence not at the start of a sentence.
+ * Cụm từ Viết Hoa (2–4 chữ) xuất hiện nhiều nhưng chưa có trong wiki.
+ * Tạm thời dùng cho panel bên phải; bước 2 thay bằng candidates() của Codex.
  */
 export function findUnknownNames(text: string, known: Set<string>, minCount = 3): { name: string; count: number }[] {
   const re = /(?<![\p{L}\p{N}])(\p{Lu}[\p{Ll}\p{M}]*(?:\s+\p{Lu}[\p{Ll}\p{M}]*){1,3})(?![\p{L}\p{N}])/gu;

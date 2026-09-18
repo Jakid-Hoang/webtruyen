@@ -1,22 +1,37 @@
-import { normalizeWorld, type NormalizeResult, type WorldData } from "@/lib/schema/world";
+import { normalizeCodex, type CodexData, type NormalizeResult } from "@/lib/codex/schema";
 
-/** Download the world as world_bible_YYYY-MM-DD.json. */
-export function exportWorldFile(data: WorldData) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+/** Tải wiki về máy dạng .json (cùng định dạng Codex). Đây là đường thoát khi dữ liệu có sự cố. */
+export function exportCodexFile(data: CodexData) {
+  const blob = new Blob([JSON.stringify(data, null, 1)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `world_bible_${new Date().toISOString().slice(0, 10)}.json`;
+  const name = (data.world.name || "codex").replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "") || "codex";
+  a.download = `${name}-${new Date().toISOString().slice(0, 10)}.json`;
   document.body.appendChild(a);
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
 }
 
-export async function readWorldFile(file: File): Promise<NormalizeResult> {
+export interface CodexFile {
+  result: NormalizeResult;
+  /** Chương trong file Codex cũ (Codex lưu chương chung với wiki). */
+  chapters: { title: string; content: string; status: string }[];
+}
+
+export async function readCodexFile(file: File): Promise<CodexFile> {
   try {
-    return normalizeWorld(JSON.parse(await file.text()));
+    const raw = JSON.parse(await file.text()) as Record<string, unknown>;
+    const chapters = Array.isArray(raw?.chapters)
+      ? (raw.chapters as Record<string, unknown>[]).map((c, i) => ({
+          title: String(c?.title || `Chương ${i + 1}`),
+          content: String(c?.content ?? ""),
+          status: String(c?.status ?? "nháp"),
+        }))
+      : [];
+    return { result: normalizeCodex(raw), chapters };
   } catch {
-    return { ok: false, error: "Lỗi đọc file: không phải JSON hợp lệ." };
+    return { result: { ok: false, error: "Lỗi đọc file: không phải JSON hợp lệ." }, chapters: [] };
   }
 }

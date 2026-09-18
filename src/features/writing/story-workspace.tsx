@@ -8,12 +8,12 @@ import { AlertCircle, ArrowLeft, CheckCircle2, ChevronDown, Download, FileUp, Lo
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { InlineName } from "@/components/kit/fields";
-import { useNav } from "@/hooks/use-lookups";
 import { useUrlState } from "@/hooks/use-url-state";
 import { cn } from "@/lib/utils";
 import { addChapter, updateChapter, updateStory, writingDb, type Chapter } from "@/lib/writing/db";
-import { MENTION_KINDS, parseMentionId } from "@/lib/writing/schema";
-import { useWorldStore } from "@/store/world-store";
+import { entityHref } from "@/lib/codex/select";
+import { parseMentionId } from "@/lib/writing/schema";
+import { useCodex } from "@/store/codex-store";
 import { ChapterList } from "./chapter-list";
 import { ChapterEditor, type SaveState } from "./editor/chapter-editor";
 import { useWikiEntries } from "./editor/wiki-entries";
@@ -71,8 +71,7 @@ function ChapterHeader({ chapter, index }: { chapter: Chapter; index: number }) 
 
 export function StoryWorkspace({ storyId }: { storyId: string }) {
   const router = useRouter();
-  const nav = useNav();
-  const eras = useWorldStore((s) => s.data.eras);
+  const eras = useCodex((s) => s.data.eras);
   const entries = useWikiEntries();
   const [chapterParam, setChapterParam] = useUrlState("ch");
   const [panelOpen, setPanelOpen] = useState(true);
@@ -95,9 +94,9 @@ export function StoryWorkspace({ storyId }: { storyId: string }) {
   const onOpenEntity = useCallback(
     (mentionId: string) => {
       const p = parseMentionId(mentionId);
-      if (p) nav.item(MENTION_KINDS[p.kind].view, p.id);
+      if (p) router.push(entityHref(p.kind, p.id));
     },
-    [nav],
+    [router],
   );
   const onTextChange = useCallback((t: string) => setText(t), []);
   const autoSync = useGDocAutoSync(data?.story ?? null, data?.chapters ?? EMPTY);
@@ -233,7 +232,7 @@ export function StoryWorkspace({ storyId }: { storyId: string }) {
 
         {panelOpen && active && (
           <aside className="hidden w-72 shrink-0 overflow-y-auto border-l lg:block" aria-label="Wiki trong chương">
-            <WikiPanel text={text} entries={entries} chapterNumber={activeIndex + 1} />
+            <WikiPanel text={text} entries={entries} />
           </aside>
         )}
       </div>

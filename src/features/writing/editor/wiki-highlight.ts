@@ -2,7 +2,6 @@ import { Extension } from "@tiptap/core";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
-import { MENTION_KINDS } from "@/lib/writing/schema";
 import type { WikiEntry } from "./wiki-entries";
 
 export const wikiHighlightKey = new PluginKey<DecorationSet>("wikiHighlight");
@@ -37,7 +36,7 @@ function build(doc: PMNode, storage: Storage): DecorationSet {
         Decoration.inline(pos + m.index, pos + m.index + m[0].length, {
           class: `wiki-name wiki-${entry.kind}`,
           "data-wiki": `${entry.kind}:${entry.id}`,
-          title: `${MENTION_KINDS[entry.kind].label}${entry.sub ? ` · ${entry.sub}` : ""} — Ctrl+Click để mở`,
+          title: `${entry.typeLabel}: ${entry.canonical}${entry.name !== entry.canonical ? ` (gọi là “${entry.name}”)` : ""} — Ctrl+Click để mở`,
         }),
       );
     }

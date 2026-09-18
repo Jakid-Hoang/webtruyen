@@ -1,6 +1,6 @@
-# Character Wiki
+# Codex — wiki thế giới fantasy & nơi viết truyện
 
-Công cụ quản lý thế giới truyện (nhân vật, thế lực, công pháp, cảnh giới…) kèm phòng viết truyện theo chương, xuất/nhập Word và Google Docs.
+Quản lý thế giới fantasy (nhân vật, chủng tộc, thế lực, skill, thần khí, quái vật… + bảng hệ nguyên tố và khắc chế) kèm phòng viết truyện theo chương, xuất/nhập Word và Google Docs. Dữ liệu wiki dùng đúng định dạng JSON của Codex (`codex.html`), nên file cũ nạp được.
 
 **Stack:** Next.js 16 (App Router) · React 19 · Tailwind v4 · shadcn/ui (Base UI) · Zustand + zundo · Zod · Dexie (IndexedDB) · Tiptap 3.
 
@@ -16,14 +16,15 @@ npm run dev                  # http://localhost:3000
 
 | Thư mục | Nội dung |
 |---|---|
-| `src/lib/schema/world.ts` | Schema zod của toàn bộ wiki (`{ eras: [...] }`), chuẩn hoá dữ liệu import |
-| `src/store/world-store.ts` | Store wiki + undo/redo, đồng bộ quan hệ 2 chiều, dọn tham chiếu khi xoá |
-| `src/features/*` | Các mục wiki (nhân vật, thế lực, công pháp, đan dược, cảnh giới, …) |
+| `src/lib/codex/types.ts` | **`TYPES`** — 15 loại mục khai báo bằng dữ liệu. Thêm loại mục = thêm một object, không viết trang riêng |
+| `src/lib/codex/schema.ts` | Schema zod của `S` (world, eras, elements, counters, ent, custom, ignore), đọc được JSON Codex |
+| `src/store/codex-store.ts` | Store wiki + hoàn tác, dọn liên kết khi xoá |
+| `src/features/codex/*` | Trang thế giới & hệ, trang chung cho mọi loại mục, loại mục tự tạo, thống kê |
 | `src/lib/writing/*` | Viết truyện: lưu trữ (Dexie), chuyển đổi HTML/DOCX/MD/TXT, Google Drive |
 | `src/features/writing/*` | Giao diện viết truyện: danh sách chương, editor Tiptap, panel wiki, nhập/xuất |
 | `src/app/api/gdoc` | Đọc Google Doc công khai (chạy phía server vì CORS) |
 
-Dữ liệu hiện lưu trên trình duyệt (IndexedDB): wiki trong DB `character_wiki`, truyện trong DB `character_wiki_writing`.
+Dữ liệu hiện lưu trên trình duyệt (IndexedDB): wiki trong DB `character_wiki` (khóa `codex_v1`), truyện trong DB `character_wiki_writing`. Nút ⬇/⬆ trên thanh trên cùng tải/nạp file JSON — luôn giữ hoạt động, đó là đường thoát khi dữ liệu có sự cố.
 
 ## Cấu hình Google Docs
 

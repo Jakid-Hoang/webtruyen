@@ -9,13 +9,13 @@ import { Button } from "@/components/ui/button";
 import { AddButton, EmptyState, PageHeader } from "@/components/kit/page";
 import { createStory, deleteStory, writingDb } from "@/lib/writing/db";
 import { askConfirm } from "@/store/confirm-store";
-import { useWorldStore } from "@/store/world-store";
+import { useCodex } from "@/store/codex-store";
 import { ImportDialog } from "./import-dialog";
 
 export function StoriesPage() {
   const router = useRouter();
-  const activeEraId = useWorldStore((s) => s.activeEraId);
-  const eras = useWorldStore((s) => s.data.eras);
+  const activeEraId = useCodex((s) => s.data.eraId);
+  const eras = useCodex((s) => s.data.eras);
   const [importOpen, setImportOpen] = useState(false);
 
   const stories = useLiveQuery(async () => {
@@ -60,7 +60,7 @@ export function StoriesPage() {
               </Link>
               <p className="text-sm text-muted-foreground">
                 {s.chapterCount} chương · {s.words.toLocaleString("vi")} chữ
-                {s.eraId && ` · ${eras.find((e) => e.id === s.eraId)?.name ?? "Era đã xoá"}`}
+                {s.eraId && ` · ${eras.find((e) => e.id === s.eraId)?.name ?? "Thời đại đã xoá"}`}
               </p>
               <p className="text-xs text-muted-foreground">
                 Sửa lần cuối {new Date(s.updatedAt).toLocaleString("vi", { dateStyle: "medium", timeStyle: "short" })}

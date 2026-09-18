@@ -1,47 +1,38 @@
-import {
-  BarChart3,
-  BookOpen,
-  Dna,
-  Flame,
-  Globe2,
-  Link2,
-  Mountain,
-  PenLine,
-  Shield,
-  Sparkles,
-  Sword,
-  Users,
-  Zap,
-  type LucideIcon,
-} from "lucide-react";
+import type { CodexData } from "@/lib/codex/schema";
+import { allTypes } from "@/lib/codex/select";
+import { GROUPS } from "@/lib/codex/types";
 
-export const VIEWS = [
-  { key: "characters", label: "Nhân Vật", icon: Users },
-  { key: "factions", label: "Thế Lực", icon: Shield },
-  { key: "world", label: "Thế Giới", icon: Globe2 },
-  { key: "arts", label: "Công Pháp", icon: BookOpen },
-  { key: "treasures", label: "Pháp Bảo", icon: Sword },
-  { key: "skills", label: "Thần Thông", icon: Zap },
-  { key: "domains", label: "Lĩnh Vực", icon: Sparkles },
-  { key: "relations", label: "Quan Hệ", icon: Link2 },
-  { key: "pills", label: "Đan Dược", icon: Flame },
-  { key: "realms", label: "Cảnh Giới", icon: Mountain },
-  { key: "races", label: "Chủng Tộc", icon: Dna },
-  { key: "stats", label: "Thống Kê", icon: BarChart3 },
-] as const satisfies readonly { key: string; label: string; icon: LucideIcon }[];
-
-export type ViewKey = (typeof VIEWS)[number]["key"];
-
-/** Every sidebar / bottom-nav entry: the writing studio first, then wiki views. */
-export const NAV_LINKS: { key: string; href: string; label: string; icon: LucideIcon }[] = [
-  { key: "write", href: "/write", label: "Viết Truyện", icon: PenLine },
-  ...VIEWS.map((v) => ({ key: v.key, href: `/${v.key}`, label: v.label, icon: v.icon })),
-];
-
-export function isViewKey(value: string): value is ViewKey {
-  return VIEWS.some((v) => v.key === value);
+export interface NavItem {
+  /** Khóa dùng để đánh dấu mục đang mở (loại mục, hoặc tên trang). */
+  key: string;
+  href: string;
+  label: string;
+  icon: string;
+  count?: number;
 }
 
-export function getView(key: ViewKey) {
-  return VIEWS.find((v) => v.key === key)!;
+/** Trang không phải loại mục, gắn vào nhóm sidebar. */
+const PAGES: (NavItem & { group: (typeof GROUPS)[number] })[] = [
+  { key: "world", href: "/world", label: "Thế giới & hệ", icon: "🜁", group: "Nền tảng" },
+  { key: "write", href: "/write", label: "Viết truyện", icon: "✍", group: "Sáng tác" },
+  { key: "stats", href: "/stats", label: "Thống kê", icon: "📊", group: "Ghi chép" },
+  { key: "types", href: "/types", label: "Thêm loại mục…", icon: "＋", group: "Khác" },
+];
+
+/** Sidebar chia nhóm, sinh từ TYPES + loại mục tự tạo (không viết cứng từng trang). */
+export function buildNav(d: CodexData): { group: string; items: NavItem[] }[] {
+  const groups = new Map<string, NavItem[]>(GROUPS.map((g) => [g, []]));
+  for (const p of PAGES.filter((p) => p.group === "Nền tảng")) groups.get(p.group)!.push(p);
+  for (const t of allTypes(d)) {
+    const g = groups.has(t.g) ? t.g : "Khác";
+    groups.get(g)!.push({ key: t.k, href: `/e/${t.k}`, label: t.l, icon: t.ic, count: (d.ent[t.k] ?? []).length });
+  }
+  for (const p of PAGES.filter((p) => p.group !== "Nền tảng")) groups.get(p.group)!.push(p);
+  return [...groups].filter(([, items]) => items.length).map(([group, items]) => ({ group, items }));
+}
+
+/** Khóa mục đang mở, suy từ đường dẫn: /e/char → "char", /world → "world". */
+export function activeKey(pathname: string): string {
+  const [first, second] = pathname.split("/").filter(Boolean);
+  return first === "e" ? (second ?? "") : (first ?? "");
 }

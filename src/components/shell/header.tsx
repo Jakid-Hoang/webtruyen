@@ -26,12 +26,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { exportWorldFile, readWorldFile } from "@/lib/persistence/file";
+import { exportCodexFile, readCodexFile } from "@/lib/persistence/file";
+import { docWordCount, htmlToDoc, textToHtml } from "@/lib/writing/convert";
+import { createStory, replaceChapters } from "@/lib/writing/db";
 import { askConfirm } from "@/store/confirm-store";
-import { useHistory, useWorldStore } from "@/store/world-store";
+import { useCodex, useHistory } from "@/store/codex-store";
 
 function SaveIndicator() {
-  const status = useWorldStore((s) => s.saveStatus);
+  const status = useCodex((s) => s.saveStatus);
   if (status === "idle") return null;
   const map = {
     saving: { icon: Loader2, text: "Đang lưu", cls: "animate-spin" },
@@ -57,33 +59,48 @@ export function Header({
   onOpenSearch: () => void;
 }) {
   const { resolvedTheme, setTheme } = useTheme();
-  const eras = useWorldStore((s) => s.data.eras);
-  const activeEraId = useWorldStore((s) => s.activeEraId);
-  const setActiveEra = useWorldStore((s) => s.setActiveEra);
+  const eras = useCodex((s) => s.data.eras);
+  const activeEraId = useCodex((s) => s.data.eraId);
+  const worldName = useCodex((s) => s.data.world.name);
+  const setEra = useCodex((s) => s.setEra);
   const canUndo = useHistory((s) => s.pastStates.length > 0);
   const canRedo = useHistory((s) => s.futureStates.length > 0);
-  const { undo, redo } = useWorldStore.temporal.getState();
+  const { undo, redo } = useCodex.temporal.getState();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const eraItems = eras.map((e) => ({ value: e.id, label: e.name }));
   const openImport = () => fileRef.current?.click();
-  const exportFile = () => exportWorldFile(useWorldStore.getState().data);
+  const exportFile = () => exportCodexFile(useCodex.getState().data);
   const toggleTheme = () => setTheme(resolvedTheme === "dark" ? "light" : "dark");
 
   const onImport = async (file: File) => {
-    const result = await readWorldFile(file);
+    const { result, chapters } = await readCodexFile(file);
     if (!result.ok) {
       toast.error(result.error);
       return;
     }
+    const count = Object.values(result.data.ent).reduce((n, l) => n + l.length, 0);
     askConfirm({
-      title: "Nhập dữ liệu từ file?",
-      description: "Dữ liệu hiện tại sẽ bị THAY THẾ hoàn toàn. Hãy xuất file sao lưu trước nếu cần.",
-      confirmLabel: "Thay thế",
+      title: "Nạp dữ liệu từ file?",
+      description:
+        `File có ${count} mục, ${result.data.elements.length} hệ${chapters.length ? `, ${chapters.length} chương` : ""}. ` +
+        "Wiki hiện tại sẽ bị THAY THẾ hoàn toàn — hãy tải file sao lưu trước nếu cần." +
+        (chapters.length ? " Các chương sẽ được đưa vào một truyện mới trong mục Viết truyện." : ""),
+      confirmLabel: "Nạp và thay thế",
       destructive: true,
-      onConfirm: () => {
-        useWorldStore.getState().replaceData(result.data);
-        toast.success(`Đã nhập ${result.data.eras.length} Era.`);
+      onConfirm: async () => {
+        useCodex.getState().replaceData(result.data);
+        if (chapters.length) {
+          const story = await createStory(result.data.world.name || "Truyện từ Codex");
+          await replaceChapters(
+            story.id,
+            chapters.map((c) => {
+              const content = htmlToDoc(textToHtml(c.content) || "<p></p>");
+              return { title: c.title, content, wordCount: docWordCount(content) };
+            }),
+          );
+        }
+        toast.success(`Đã nạp ${count} mục${chapters.length ? ` và ${chapters.length} chương` : ""}.`);
       },
     });
   };
@@ -97,10 +114,12 @@ export function Header({
         <PanelLeft />
       </Button>
 
-      <span className="hidden font-extrabold tracking-tight sm:inline">📖 Character Wiki</span>
+      <span className="hidden max-w-48 truncate font-extrabold tracking-tight sm:inline" title={worldName}>
+        📖 {worldName || "Codex"}
+      </span>
 
-      <Select items={eraItems} value={activeEraId} onValueChange={(v) => v && setActiveEra(v)}>
-        <SelectTrigger size="sm" className="max-w-40 min-w-0 sm:max-w-60" aria-label="Chọn Era">
+      <Select items={eraItems} value={activeEraId} onValueChange={(v) => v && setEra(v)}>
+        <SelectTrigger size="sm" className="max-w-40 min-w-0 sm:max-w-60" aria-label="Chọn thời đại">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

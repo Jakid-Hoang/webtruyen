@@ -5,7 +5,6 @@ import { ReactRenderer } from "@tiptap/react";
 import type { SuggestionKeyDownProps, SuggestionOptions, SuggestionProps } from "@tiptap/suggestion";
 import { cn } from "@/lib/utils";
 import { fold } from "@/lib/text";
-import { MENTION_KINDS } from "@/lib/writing/schema";
 import type { WikiEntry } from "./wiki-entries";
 
 interface ListHandle {
@@ -61,11 +60,11 @@ const MentionList = forwardRef<ListHandle, SuggestionProps<WikiEntry>>(function 
             }}
             className={cn("flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm", i === index && "bg-muted")}
           >
-            <span>{MENTION_KINDS[it.kind].icon}</span>
+            <span>{it.icon}</span>
             <span className="min-w-0 flex-1">
               <span className="block truncate font-medium">{it.name}</span>
               <span className="block truncate text-[11px] text-muted-foreground">
-                {MENTION_KINDS[it.kind].label}
+                {it.typeLabel}
                 {it.sub ? ` · ${it.sub}` : ""}
               </span>
             </span>

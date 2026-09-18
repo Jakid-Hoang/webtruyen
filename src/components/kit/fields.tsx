@@ -3,7 +3,11 @@
 import { useId, useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Option } from "@/lib/catalog";
+export interface Option {
+  value: string;
+  label: string;
+  icon?: string;
+}
 
 const controlCls =
   "w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";

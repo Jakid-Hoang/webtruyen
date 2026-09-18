@@ -4,11 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { viewHref } from "@/hooks/use-url-state";
-import type { ViewKey } from "@/lib/nav";
+import { allTypes, entityHref } from "@/lib/codex/select";
 import { fold } from "@/lib/text";
 import { cn } from "@/lib/utils";
-import { useActiveEra } from "@/store/world-store";
+import { useCodex } from "@/store/codex-store";
 
 interface Hit {
   key: string;
@@ -46,7 +45,7 @@ export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChan
 }
 
 function SearchBody({ onDone }: { onDone: () => void }) {
-  const era = useActiveEra();
+  const data = useCodex((s) => s.data);
   const router = useRouter();
   const [q, setQuery] = useState("");
   const [active, setActive] = useState(0);
@@ -62,45 +61,21 @@ function SearchBody({ onDone }: { onDone: () => void }) {
     const has = (...xs: (string | undefined)[]) => xs.some((x) => x && fold(x).includes(n));
     const out: Hit[] = [];
     const push = (h: Hit) => out.length < MAX_HITS && out.push(h);
-    const to = (view: ViewKey, params: Record<string, string>) => viewHref(view, params);
 
-    for (const c of era.characters)
-      if (has(c.name, c.nickname, c.cultivation, c.context, c.currentIdentity, c.hiddenIdentity))
-        push({
-          key: c.id,
-          category: "Nhân vật",
-          icon: "👤",
-          title: c.name,
-          sub: [c.cultivation, c.status === "dead" ? "Đã tử vong" : c.status === "hidden" ? "Ẩn cư" : ""].filter(Boolean).join(" · "),
-          href: to("characters", { open: c.id }),
-        });
-    for (const l of era.worldStructure) {
-      if (has(l.name, l.summary))
-        push({ key: l.id, category: "Vùng đất", icon: "🗺️", title: l.name, sub: l.summary.slice(0, 60), href: to("world", { open: l.id }) });
-      for (const f of l.factions)
-        if (has(f.name, f.description))
-          push({ key: f.id, category: "Thế lực", icon: "🛡️", title: f.name, sub: l.name, href: to("factions", { open: f.id }) });
-    }
-    const simple = [
-      { list: era.cultivationArts, view: "arts" as const, category: "Công pháp", icon: "📘", fields: (x: (typeof era.cultivationArts)[number]) => [x.rank, x.origin] },
-      { list: era.treasures, view: "treasures" as const, category: "Pháp bảo", icon: "⚔️", fields: (x: (typeof era.treasures)[number]) => [x.rank, x.type] },
-      { list: era.skills, view: "skills" as const, category: "Thần thông", icon: "⚡", fields: (x: (typeof era.skills)[number]) => [x.rank, x.type] },
-      { list: era.domains, view: "domains" as const, category: "Lĩnh vực", icon: "🌀", fields: (x: (typeof era.domains)[number]) => [x.completionLevel] },
-      { list: era.pills, view: "pills" as const, category: "Đan dược", icon: "⚗️", fields: (x: (typeof era.pills)[number]) => [x.rank, x.type] },
-    ];
-    for (const group of simple)
-      for (const x of group.list as { id: string; name: string }[]) {
-        const extra = (group.fields as (x: unknown) => string[])(x);
-        if (has(x.name, ...extra))
-          push({ key: x.id, category: group.category, icon: group.icon, title: x.name, sub: extra.filter(Boolean).join(" · "), href: to(group.view, { open: x.id }) });
+    // Mọi loại mục (kể cả loại tự tạo): tên, biệt danh và nội dung các ô thông tin.
+    for (const t of allTypes(data))
+      for (const e of data.ent[t.k] ?? []) {
+        const fields = Object.values(e.f);
+        if (!has(e.name, e.aliases, ...fields)) continue;
+        const sub = [e.aliases, ...t.f.filter((f) => f.t === "sel" || f.t === "rank").map((f) => e.f[f.k])]
+          .filter(Boolean)
+          .join(" · ");
+        push({ key: `${t.k}:${e.id}`, category: t.l, icon: e.icon || t.ic, title: e.name || "(chưa đặt tên)", sub, href: entityHref(t.k, e.id) });
       }
-    for (const r of era.races)
-      if (has(r.name, r.alias, r.summary)) push({ key: r.id, category: "Chủng tộc", icon: r.emoji || "🧬", title: r.name, sub: r.alias, href: to("races", { open: r.id }) });
-    for (const ps of era.powerSystems)
-      for (const m of ps.majorRealms)
-        if (has(m.name, m.tier)) push({ key: m.id, category: "Cảnh giới", icon: "⛰️", title: m.name, sub: ps.name, href: to("realms", { open: m.id }) });
+    for (const el of data.elements)
+      if (has(el.name, el.desc)) push({ key: `el:${el.id}`, category: "Hệ nguyên tố", icon: el.icon, title: el.name, sub: el.desc.slice(0, 60), href: "/world" });
     return out;
-  }, [q, era]);
+  }, [q, data]);
 
   useEffect(() => {
     listRef.current?.querySelector(`[data-index="${active}"]`)?.scrollIntoView({ block: "nearest" });
@@ -132,7 +107,7 @@ function SearchBody({ onDone }: { onDone: () => void }) {
                 go(hits[active]);
               }
             }}
-            placeholder="Tìm trên toàn bộ wiki…"
+            placeholder="Tìm nhân vật, skill, địa danh, hệ…"
             aria-label="Tìm trên toàn bộ wiki"
             className="h-12 flex-1 bg-transparent text-sm outline-none"
           />
