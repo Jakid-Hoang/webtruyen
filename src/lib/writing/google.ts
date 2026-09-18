@@ -9,9 +9,11 @@
  * NEXT_PUBLIC_GOOGLE_APP_ID (the Cloud project number).
  */
 
-const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
-const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_API_KEY ?? "";
-const APP_ID = process.env.NEXT_PUBLIC_GOOGLE_APP_ID ?? "";
+/** Env values pasted/piped on Windows can carry a BOM or CR; Google rejects them silently. */
+const clean = (v: string | undefined) => (v ?? "").replace(/^﻿/, "").trim();
+const CLIENT_ID = clean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
+const API_KEY = clean(process.env.NEXT_PUBLIC_GOOGLE_API_KEY);
+const APP_ID = clean(process.env.NEXT_PUBLIC_GOOGLE_APP_ID);
 const SCOPE = "https://www.googleapis.com/auth/drive.file";
 const TOKEN_KEY = "gdocs_token_v1";
 
