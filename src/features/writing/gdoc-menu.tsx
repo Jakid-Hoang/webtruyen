@@ -21,7 +21,16 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { storyToHtml } from "@/lib/writing/convert";
 import { getOrderedChapters, updateStory, type Story } from "@/lib/writing/db";
-import { createDocFromHtml, getAccessToken, getDocMeta, googleConfigured, pickGoogleDoc, updateDocFromHtml, type DocMeta } from "@/lib/writing/google";
+import {
+  createDocFromHtml,
+  getAccessToken,
+  getDocMeta,
+  getDriveUser,
+  googleConfigured,
+  pickGoogleDoc,
+  updateDocFromHtml,
+  type DocMeta,
+} from "@/lib/writing/google";
 import { askConfirm } from "@/store/confirm-store";
 import { fetchGoogleDoc, type ImportSource } from "./import-dialog";
 import type { AutoSyncState } from "./use-gdoc-autosync";
@@ -65,7 +74,21 @@ async function ensureWriteAccess(fileId: string): Promise<DocMeta> {
     const picked = await pickGoogleDoc(fileId);
     if (!picked) throw new Error("Chưa cấp quyền ghi cho Doc.");
     if (picked.id !== fileId) throw new Error("Bạn đã chọn một Doc khác. Hãy chọn đúng Doc đang liên kết.");
-    return getDocMeta(fileId);
+    // The Picker grant can take a few seconds to reach the Drive API.
+    for (const wait of [500, 1000, 1500, 2000, 3000]) {
+      await new Promise((r) => setTimeout(r, wait));
+      try {
+        return await getDocMeta(fileId);
+      } catch (err) {
+        const s = (err as { status?: number }).status;
+        if (s !== 404 && s !== 403) throw err;
+      }
+    }
+    const user = await getDriveUser().catch(() => null);
+    throw new Error(
+      `Google chưa cho tài khoản ${user?.emailAddress ?? "đang đăng nhập"} truy cập Doc này qua app. ` +
+        "Doc cần thuộc tài khoản đó, hoặc được chia sẻ quyền “Người chỉnh sửa” cho tài khoản đó (không phải chỉ “ai có link đều xem được”).",
+    );
   }
 }
 

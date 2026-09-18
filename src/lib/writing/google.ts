@@ -161,7 +161,13 @@ async function drive(url: string, init: RequestInit = {}, retry = true): Promise
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
     const msg = body.error?.message ?? `HTTP ${res.status}`;
-    throw Object.assign(new Error(res.status === 404 ? "Không tìm thấy Doc (có thể đã bị xoá hoặc app chưa được cấp quyền)." : msg), {
+    const friendly =
+      res.status === 404
+        ? "Không tìm thấy Doc (có thể đã bị xoá hoặc app chưa được cấp quyền)."
+        : res.status === 403 && /permission|insufficient|writer|forbidden/i.test(msg)
+          ? `Tài khoản Google này không có quyền sửa Doc (chỉ được xem). Chủ Doc cần chia sẻ quyền “Người chỉnh sửa”. (${msg})`
+          : msg;
+    throw Object.assign(new Error(friendly), {
       status: res.status,
     });
   }
@@ -199,6 +205,12 @@ export async function updateDocFromHtml(id: string, html: string): Promise<DocMe
     body: html,
   });
   return res.json();
+}
+
+/** The Google account the current token belongs to (works with the drive.file scope). */
+export async function getDriveUser(): Promise<{ emailAddress: string; displayName: string }> {
+  const res = await drive("https://www.googleapis.com/drive/v3/about?fields=user(emailAddress,displayName)");
+  return ((await res.json()) as { user: { emailAddress: string; displayName: string } }).user;
 }
 
 export async function getDocMeta(id: string): Promise<DocMeta> {
