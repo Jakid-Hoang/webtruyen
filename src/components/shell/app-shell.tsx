@@ -4,8 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { CloudConflictDialog, useCloudSync } from "@/features/cloud/cloud-sync";
 import { activeKey } from "@/lib/nav";
 import { useLocalPersistence } from "@/lib/persistence/use-local-persistence";
+import { useAuth } from "@/store/auth-store";
 import { useCodex } from "@/store/codex-store";
 import { BottomNav } from "./bottom-nav";
 import { ConfirmDialog } from "./confirm-dialog";
@@ -54,6 +56,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useLocalPersistence();
   useShortcuts(toggleSearch);
+  useEffect(() => useAuth.getState().init(), []);
+  useCloudSync();
 
   const hydrated = useCodex((s) => s.hydrated);
   const activeView = activeKey(usePathname()) || null;
@@ -100,6 +104,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
       <ConfirmDialog />
+      <CloudConflictDialog />
     </div>
   );
 }

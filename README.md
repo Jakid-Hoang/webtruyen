@@ -31,6 +31,31 @@ npm run dev                  # http://localhost:3000
 
 Dữ liệu hiện lưu trên trình duyệt (IndexedDB): wiki trong DB `character_wiki` (khóa `codex_v1`), truyện trong DB `character_wiki_writing`. Nút ⬇/⬆ trên thanh trên cùng tải/nạp file JSON — luôn giữ hoạt động, đó là đường thoát khi dữ liệu có sự cố.
 
+## Đồng bộ nhiều máy (Supabase)
+
+Không cấu hình thì app chạy hoàn toàn trong trình duyệt như trước. Bật đồng bộ:
+
+1. Tạo project ở [Supabase](https://supabase.com/dashboard) (region gần nhất, vd Singapore).
+2. **SQL Editor** → dán toàn bộ [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) → *Run*.
+   File này tạo 3 bảng (`projects`, `stories`, `chapters`), trigger cập nhật `updated_at`/`version`,
+   và Row Level Security: **mỗi người chỉ đọc/ghi được dữ liệu của chính mình**.
+3. **Project Settings → API**: điền vào `.env.local` (và Environment Variables trên Vercel):
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — khóa *anon/publishable* (công khai, nằm trong mã trang)
+4. Khởi động lại `npm run dev`. Nút **Đăng nhập** xuất hiện trên thanh trên cùng.
+
+### Cách đồng bộ hoạt động
+
+- **Máy mình là chính**: mọi thay đổi vẫn lưu vào IndexedDB trước rồi mới đẩy lên (gom 2,5 giây).
+  Mất mạng vẫn viết được; có mạng lại thì tự đẩy nốt.
+- Wiki là **một tài liệu JSON** (bảng `projects`) kèm số `version`; truyện và chương là **từng dòng**,
+  so bằng `updated_at`, bên nào mới hơn thì bên đó thắng.
+- Kéo về khi quay lại tab, mỗi phút một lần, và ngay khi có mạng trở lại.
+- Hai máy sửa cùng lúc → hiện hộp thoại **chọn giữ bản nào**, không bao giờ tự đè.
+- Máy đang trống mà trên mạng có dữ liệu thì **không bao giờ** tự đẩy bản trống lên.
+- Đăng xuất không xoá gì trên máy; nút ⬇/⬆ xuất/nhập JSON vẫn là đường thoát khi có sự cố.
+- Dò lỗi đồng bộ: đặt `localStorage.cloud_debug = "1"` rồi xem console.
+
 ## Cấu hình Google Docs
 
 Không cấu hình vẫn dùng được **nhập từ link Google Docs công khai**. Để **đẩy truyện lên Docs** và **mở Doc riêng tư**, cần:

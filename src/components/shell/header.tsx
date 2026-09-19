@@ -31,6 +31,7 @@ import { docWordCount, htmlToDoc, textToHtml } from "@/lib/writing/convert";
 import { createStory, replaceChapters } from "@/lib/writing/db";
 import { askConfirm } from "@/store/confirm-store";
 import { useCodex, useHistory } from "@/store/codex-store";
+import { AccountMenu } from "./account-menu";
 
 function SaveIndicator() {
   const status = useCodex((s) => s.saveStatus);
@@ -142,6 +143,7 @@ export function Header({
 
       <div className="ml-auto flex items-center gap-1">
         <SaveIndicator />
+        <AccountMenu />
         <Button variant="ghost" size="icon" className="lg:hidden" onClick={onOpenSearch} aria-label="Tìm kiếm (Ctrl+K)">
           <Search />
         </Button>
