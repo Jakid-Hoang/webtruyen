@@ -130,6 +130,24 @@ export const TYPES: TypeDef[] = [
     ],
   },
   {
+    // Rất nhiều thế giới không có hệ nguyên tố mà chia nhân vật theo class.
+    k: "job", l: "Nghề nghiệp & Class", ic: "⚔", g: "Sức mạnh", els: 1,
+    f: [
+      { k: "kind", l: "Nhóm", t: "sel", o: ["Cận chiến", "Tầm xa", "Phép thuật", "Hỗ trợ", "Hỗn hợp", "Sản xuất", "Ẩn"] },
+      { k: "tier", l: "Bậc nghề", t: "sel", o: ["Sơ cấp", "Trung cấp", "Cao cấp", "Chuyển chức", "Nghề ẩn", "Độc nhất"] },
+      { k: "weapon", l: "Vũ khí tiêu biểu", t: "text" },
+      { k: "role", l: "Vai trò trong đội", t: "text" },
+      { k: "from", l: "Chuyển lên từ", t: "text" },
+      { k: "cond", l: "Điều kiện chuyển chức", t: "area" },
+      { k: "desc", l: "Mô tả", t: "area" },
+      { k: "weak", l: "Điểm yếu", t: "area" },
+    ],
+    r: [
+      { k: "skill", l: "Skill tiêu biểu", to: "skill" },
+      { k: "school", l: "Trường phái liên quan", to: "school" },
+    ],
+  },
+  {
     k: "school", l: "Trường phái ma thuật", ic: "📜", g: "Sức mạnh", els: 1,
     f: [
       { k: "tier", l: "Cấp hạng", t: "text" },

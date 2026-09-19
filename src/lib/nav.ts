@@ -17,6 +17,8 @@ const PAGES: (NavItem & { group: (typeof GROUPS)[number] })[] = [
   { key: "write", href: "/write", label: "Viết truyện", icon: "✍", group: "Sáng tác" },
   { key: "read", href: "/read", label: "Đọc & kiểm tra", icon: "📖", group: "Sáng tác" },
   { key: "scan", href: "/scan", label: "Dò tên lạ", icon: "🔍", group: "Sáng tác" },
+  { key: "names", href: "/names", label: "Máy đặt tên", icon: "🎲", group: "Sáng tác" },
+  { key: "recap", href: "/recap", label: "Tóm tắt cốt truyện", icon: "📋", group: "Sáng tác" },
   { key: "library", href: "/library/skill", label: "Thư viện mẫu", icon: "📚", group: "Sức mạnh" },
   { key: "fuse", href: "/fuse", label: "Kết hợp skill", icon: "⚗", group: "Sức mạnh" },
   { key: "stats", href: "/stats", label: "Thống kê", icon: "📊", group: "Ghi chép" },

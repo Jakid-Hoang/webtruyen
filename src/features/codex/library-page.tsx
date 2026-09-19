@@ -93,21 +93,21 @@ function LibraryView({ lib, rows }: { lib: SeedLibrary; rows: SeedRow[] }) {
   const [filter, setFilter] = useState<Record<number, string>>({});
   const [rnd, setRnd] = useState(0);
 
-  const folders = useMemo(() => folderCounts(rows), [rows]);
+  const folders = useMemo(() => folderCounts(rows, lib), [rows, lib]);
   const folderKeys = useMemo(() => Object.keys(folders).sort(), [folders]);
   const options = useMemo(() => Object.fromEntries(lib.filters.map((c) => [c, [...new Set(rows.map((r) => r[c]))].sort()])), [lib, rows]);
   const label = (c: number) => t.f.find((f) => f.k === colKey(lib, c))?.l ?? "";
 
   const filtered = useMemo(() => {
     let L = rows.map((s, i) => ({ s, i }));
-    if (folder) L = L.filter(({ s }) => s[1] === folder);
+    if (folder) L = L.filter(({ s }) => s[lib.folderCol] === folder);
     for (const [c, v] of Object.entries(filter)) if (v) L = L.filter(({ s }) => s[+c] === v);
     if (q) {
       const n = q.toLowerCase();
-      L = L.filter(({ s }) => s.filter((_, j) => j !== 1).join(" ").toLowerCase().includes(n));
+      L = L.filter(({ s }) => s.filter((_, j) => j !== lib.folderCol).join(" ").toLowerCase().includes(n));
     }
     return L;
-  }, [rows, folder, filter, q]);
+  }, [rows, folder, filter, q, lib]);
 
   const total = filtered.length;
   const shown = rnd && total > 12 ? seededPick(filtered, rnd, 12) : filtered.slice(0, SHOWN);
@@ -221,6 +221,7 @@ function LibraryView({ lib, rows }: { lib: SeedLibrary; rows: SeedRow[] }) {
                     </span>
                     <span className="grid gap-1.5 px-3 pb-3">
                       <span className="font-serif text-base font-semibold">{s[0]}</span>
+                      {lib.glossCol >= 0 && s[lib.glossCol] && <span className="text-xs font-medium text-primary">{s[lib.glossCol]}</span>}
                       <span className="line-clamp-3 text-sm text-muted-foreground">{s[lib.body]}</span>
                       {lib.tags.some((c) => s[c]) && (
                         <span className="flex flex-wrap gap-1">
@@ -241,16 +242,17 @@ function LibraryView({ lib, rows }: { lib: SeedLibrary; rows: SeedRow[] }) {
           <DialogContent className="max-h-[85dvh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{open[0]}</DialogTitle>
+              {lib.glossCol >= 0 && open[lib.glossCol] && <p className="font-medium text-primary">{open[lib.glossCol]}</p>}
             </DialogHeader>
             <dl className="grid gap-2 text-sm">
               {lib.cols.map((k, j) => (
                 <div key={k}>
                   <dt className="text-xs text-muted-foreground">{t.f.find((f) => f.k === k)?.l ?? k}</dt>
-                  <dd>{open[j + 2]}</dd>
+                  <dd>{open[j + lib.firstCol]}</dd>
                 </div>
               ))}
             </dl>
-            <p className="text-xs text-muted-foreground">Thư mục: {open[1]}</p>
+            <p className="text-xs text-muted-foreground">Thư mục: {open[lib.folderCol]}</p>
             <p className="text-xs text-muted-foreground">
               Đưa vào truyện sẽ tạo một bản sao sửa được, và từ đó tên này sẽ được dò tự động trong các chương.
             </p>

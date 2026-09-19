@@ -10,7 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { InlineName } from "@/components/kit/fields";
 import { useUrlState } from "@/hooks/use-url-state";
 import { cn } from "@/lib/utils";
-import { addChapter, updateChapter, updateStory, writingDb, type Chapter } from "@/lib/writing/db";
+import { addChapter, updateChapter, updateStory, writingDb, type Chapter, type Section } from "@/lib/writing/db";
 import { entityHref } from "@/lib/codex/select";
 import { parseMentionId } from "@/lib/writing/schema";
 import { useCodex } from "@/store/codex-store";
@@ -39,7 +39,7 @@ function SaveBadge({ state }: { state: SaveState }) {
   );
 }
 
-function ChapterHeader({ chapter, index }: { chapter: Chapter; index: number }) {
+function ChapterHeader({ chapter, index, sections }: { chapter: Chapter; index: number; sections: Section[] }) {
   const [renaming, setRenaming] = useState(false);
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-3 px-4 pt-6 sm:px-8">
@@ -65,6 +65,21 @@ function ChapterHeader({ chapter, index }: { chapter: Chapter; index: number }) 
       >
         {chapter.status === "done" ? "✓ Hoàn thành" : "Bản nháp"}
       </button>
+      {sections.length > 0 && (
+        <select
+          value={chapter.sectionId ?? ""}
+          onChange={(e) => void updateChapter(chapter.id, { sectionId: e.target.value || null })}
+          aria-label="Thuộc phần"
+          className="h-7 rounded-md border border-input bg-transparent px-1.5 text-xs dark:bg-input/30"
+        >
+          <option value="">Chưa xếp phần</option>
+          {sections.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+      )}
     </div>
   );
 }
@@ -207,7 +222,7 @@ export function StoryWorkspace({ storyId }: { storyId: string }) {
 
           {active ? (
             <>
-              <ChapterHeader chapter={active} index={activeIndex} />
+              <ChapterHeader chapter={active} index={activeIndex} sections={story.sections ?? []} />
               <ChapterEditor
                 key={active.id}
                 chapter={active}

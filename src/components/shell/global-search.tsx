@@ -78,10 +78,10 @@ function SearchBody({ onDone }: { onDone: () => void }) {
     for (const t of allTypes(data))
       for (const e of data.ent[t.k] ?? []) {
         const fields = Object.values(e.f);
-        if (!has(e.name, e.aliases, ...fields)) continue;
-        const sub = [e.aliases, ...t.f.filter((f) => f.t === "sel" || f.t === "rank").map((f) => e.f[f.k])]
-          .filter(Boolean)
-          .join(" · ");
+        if (!has(e.name, e.gloss, e.aliases, ...fields)) continue;
+        const sub =
+          e.gloss ||
+          [e.aliases, ...t.f.filter((f) => f.t === "sel" || f.t === "rank").map((f) => e.f[f.k])].filter(Boolean).join(" · ");
         push({ key: `${t.k}:${e.id}`, category: t.l, icon: e.icon || t.ic, title: e.name || "(chưa đặt tên)", sub, href: entityHref(t.k, e.id) });
       }
     for (const el of data.elements)

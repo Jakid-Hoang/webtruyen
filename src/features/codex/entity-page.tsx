@@ -17,6 +17,7 @@ import { EntityDetail } from "./entity-detail";
 
 /** Dòng phụ dưới tên: 2 ô ngắn đầu tiên + các hệ. */
 function subLine(t: TypeDef, e: Entity, elName: (id: string) => string) {
+  if (e.gloss) return e.gloss;
   const parts = t.f
     .filter((f) => f.t !== "area" && f.t !== "img")
     .slice(0, 2)

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Plus, Trash2, X } from "lucide-react";
+import { Dices, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AreaField, SelectField, TextField } from "@/components/kit/fields";
@@ -12,7 +12,9 @@ import { elementColor, elementName, entityColors, entityHref, entityName, tdef }
 import { REL_KINDS, type FieldDef, type TypeDef } from "@/lib/codex/types";
 import { askConfirm } from "@/store/confirm-store";
 import { useCodex } from "@/store/codex-store";
+import { generateUnique, hasNamePattern } from "@/lib/codex/name-gen";
 import { EntityHits } from "./entity-hits";
+import { usedNames } from "./names-page";
 import { RefPicker } from "./ref-picker";
 
 function Panel({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
@@ -144,9 +146,12 @@ export function EntityDetail({ t, e, onDeleted }: { t: TypeDef; e: Entity; onDel
             {/* eslint-disable-next-line @next/next/no-img-element */}
             {img ? <img src={img} alt="" className="size-full object-cover" /> : e.icon || t.ic}
           </span>
-          <h1 className="min-w-0 flex-1 truncate font-serif text-2xl font-semibold text-white [text-shadow:0_2px_8px_rgba(0,0,0,.5)]">
-            {e.name || "(chưa đặt tên)"}
-          </h1>
+          <span className="min-w-0 flex-1">
+            <h1 className="truncate font-serif text-2xl font-semibold text-white [text-shadow:0_2px_8px_rgba(0,0,0,.5)]">
+              {e.name || "(chưa đặt tên)"}
+            </h1>
+            {e.gloss && <p className="truncate text-xs text-white/90 [text-shadow:0_1px_4px_rgba(0,0,0,.6)]">{e.gloss}</p>}
+          </span>
           <Button
             variant="outline"
             size="sm"
@@ -169,7 +174,23 @@ export function EntityDetail({ t, e, onDeleted }: { t: TypeDef; e: Entity; onDel
         </div>
         <div className="grid gap-3 p-4">
           <div className="grid gap-3 sm:grid-cols-3">
-            <TextField label="Tên" value={e.name} onCommit={(name) => updateEntity(t.k, e.id, { name })} />
+            <div className="flex items-end gap-1.5">
+              <TextField label="Tên" value={e.name} onCommit={(name) => updateEntity(t.k, e.id, { name })} className="min-w-0 flex-1" />
+              {hasNamePattern(t.k) && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  aria-label="Bốc tên ngẫu nhiên"
+                  title="Bốc tên ngẫu nhiên"
+                  onClick={() => {
+                    const r = generateUnique(t.k, "", "en", usedNames(data));
+                    updateEntity(t.k, e.id, { name: r.name, gloss: r.gloss });
+                  }}
+                >
+                  <Dices />
+                </Button>
+              )}
+            </div>
             <TextField label="Biểu tượng" value={e.icon} onCommit={(icon) => updateEntity(t.k, e.id, { icon })} />
             <SelectField
               label="Thời đại"
@@ -179,6 +200,12 @@ export function EntityDetail({ t, e, onDeleted }: { t: TypeDef; e: Entity; onDel
               placeholder="Xuyên suốt"
             />
           </div>
+          <TextField
+            label="Mô tả một dòng — hiện ngay dưới tên"
+            value={e.gloss}
+            onCommit={(gloss) => updateEntity(t.k, e.id, { gloss })}
+            placeholder="Nói nó LÀ CÁI GÌ, đừng dịch lại tên — vd: Thị trấn mỏ sắt đã cạn, dân bỏ đi quá nửa"
+          />
           <TextField
             label="Tên khác / biệt danh — ngăn bằng dấu phẩy, dùng để dò trong truyện"
             value={e.aliases}

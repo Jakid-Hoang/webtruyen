@@ -3,10 +3,10 @@
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Plus, Trash2 } from "lucide-react";
+import { FolderPlus, GripVertical, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { deleteChapter, updateStory, type Chapter, type Story } from "@/lib/writing/db";
+import { addSection, deleteChapter, deleteSection, renameSection, updateStory, type Chapter, type Story } from "@/lib/writing/db";
 import { askConfirm } from "@/store/confirm-store";
 
 function Row({ chapter, index, active, onSelect, storyId }: { chapter: Chapter; index: number; active: boolean; onSelect: () => void; storyId: string }) {
@@ -78,6 +78,11 @@ export function ChapterList({
   };
 
   const total = chapters.reduce((n, c) => n + c.wordCount, 0);
+  const sections = story.sections ?? [];
+  const indexOf = new Map(chapters.map((c, i) => [c.id, i]));
+  const inSection = (id: string | null) =>
+    chapters.filter((c) => (id ? c.sectionId === id : !c.sectionId || !sections.some((s) => s.id === c.sectionId)));
+  const loose = inSection(null);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -86,15 +91,58 @@ export function ChapterList({
           <h2 className="text-[11px] font-bold tracking-widest text-muted-foreground uppercase">Chương ({chapters.length})</h2>
           <p className="text-[11px] text-muted-foreground">{total.toLocaleString("vi")} chữ</p>
         </div>
-        <Button size="icon-sm" variant="ghost" onClick={onAdd} aria-label="Thêm chương">
-          <Plus />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button size="xs" variant="ghost" onClick={() => void addSection(story.id, `Phần ${sections.length + 1}`)}>
+            <FolderPlus /> Phần
+          </Button>
+          <Button size="icon-sm" variant="ghost" onClick={onAdd} aria-label="Thêm chương">
+            <Plus />
+          </Button>
+        </div>
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={ids} strategy={verticalListSortingStrategy}>
           <ol className="grid min-h-0 flex-1 content-start gap-0.5 overflow-y-auto">
-            {chapters.map((c, i) => (
-              <Row key={c.id} chapter={c} index={i} active={c.id === activeId} onSelect={() => onSelect(c.id)} storyId={story.id} />
+            {sections.map((s) => (
+              <li key={s.id} className="grid gap-0.5">
+                <div className="flex items-center gap-1 pt-2 pl-1">
+                  <input
+                    defaultValue={s.name}
+                    aria-label={`Tên phần ${s.name}`}
+                    onBlur={(e) => e.target.value.trim() && e.target.value !== s.name && void renameSection(story.id, s.id, e.target.value.trim())}
+                    className="min-w-0 flex-1 border-b border-transparent bg-transparent text-[11px] font-bold tracking-widest text-muted-foreground uppercase outline-none focus:border-input"
+                  />
+                  <span className="text-[11px] text-muted-foreground tabular-nums">{inSection(s.id).length}</span>
+                  <button
+                    type="button"
+                    aria-label={`Xoá phần ${s.name}`}
+                    onClick={() =>
+                      askConfirm({
+                        title: `Xoá phần “${s.name}”?`,
+                        description: "Các chương bên trong chuyển thành “chưa xếp phần”, không chương nào bị xoá.",
+                        confirmLabel: "Xoá phần",
+                        destructive: true,
+                        onConfirm: () => void deleteSection(story.id, s.id),
+                      })
+                    }
+                    className="rounded p-1 text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="size-3" />
+                  </button>
+                </div>
+                <ol className="grid gap-0.5">
+                  {inSection(s.id).map((c) => (
+                    <Row key={c.id} chapter={c} index={indexOf.get(c.id) ?? 0} active={c.id === activeId} onSelect={() => onSelect(c.id)} storyId={story.id} />
+                  ))}
+                  {inSection(s.id).length === 0 && <li className="px-3 py-1 text-[11px] text-muted-foreground italic">trống</li>}
+                </ol>
+              </li>
+            ))}
+            {sections.length > 0 && loose.length > 0 && (
+              <li className="px-1 pt-2 text-[11px] font-bold tracking-widest text-muted-foreground uppercase">Chưa xếp phần</li>
+            )}
+            {loose.map((c) => (
+              <Row key={c.id} chapter={c} index={indexOf.get(c.id) ?? 0} active={c.id === activeId} onSelect={() => onSelect(c.id)} storyId={story.id} />
             ))}
           </ol>
         </SortableContext>

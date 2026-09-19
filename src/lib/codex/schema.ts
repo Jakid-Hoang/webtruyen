@@ -33,6 +33,11 @@ export const entitySchema = z.looseObject({
   /** null = xuyên suốt mọi thời đại. */
   eraId: z.preprocess((v) => (v === "" || v === undefined ? null : toStr(v)), z.string().nullable().catch(null)),
   name: text(),
+  /**
+   * Mô tả một dòng hiện ngay dưới tên. KHÔNG phải bản dịch của tên: tên nói nó
+   * tên gì, gloss nói nó LÀ CÁI GÌ (“Thị trấn mỏ sắt đã cạn, dân bỏ đi quá nửa”).
+   */
+  gloss: text(),
   /** Chuỗi ngăn bằng dấu phẩy — cũng được dò trong truyện. */
   aliases: text(),
   icon: text(),

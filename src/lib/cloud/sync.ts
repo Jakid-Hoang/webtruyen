@@ -14,7 +14,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { JSONContent } from "@tiptap/core";
 import { cloud } from "@/lib/cloud/client";
 import { normalizeCodex, type CodexData } from "@/lib/codex/schema";
-import { writingDb, type Chapter, type ChapterStatus, type GDocLink, type Story } from "@/lib/writing/db";
+import { writingDb, type Chapter, type ChapterStatus, type GDocLink, type Recap, type Section, type Story } from "@/lib/writing/db";
 
 const META_KEY = "cloud_meta_v1";
 
@@ -69,6 +69,7 @@ interface StoryRow {
   synopsis: string;
   era_id: string;
   chapter_order: string[];
+  sections: Section[] | null;
   gdoc: GDocLink | null;
   updated_at: string;
 }
@@ -79,8 +80,13 @@ interface ChapterRow {
   content: JSONContent;
   word_count: number;
   status: string;
+  section_id: string | null;
+  recap: Recap | null;
   updated_at: string;
 }
+
+const STORY_COLS = "id,title,synopsis,era_id,chapter_order,sections,gdoc,updated_at";
+const CHAPTER_COLS = "id,story_id,title,content,word_count,status,section_id,recap,updated_at";
 
 const ms = (iso: string) => new Date(iso).getTime();
 const iso = (n: number) => new Date(n).toISOString();
@@ -144,6 +150,7 @@ const toStory = (r: StoryRow): Story => ({
   synopsis: r.synopsis,
   eraId: r.era_id,
   chapterOrder: r.chapter_order ?? [],
+  sections: r.sections ?? [],
   gdoc: r.gdoc ?? undefined,
   createdAt: ms(r.updated_at),
   updatedAt: ms(r.updated_at),
@@ -156,6 +163,8 @@ const toChapter = (r: ChapterRow): Chapter => ({
   content: r.content,
   wordCount: r.word_count,
   status: (r.status === "done" ? "done" : "draft") as ChapterStatus,
+  sectionId: r.section_id ?? null,
+  recap: r.recap ?? undefined,
   updatedAt: ms(r.updated_at),
 });
 
@@ -167,6 +176,7 @@ const storyRow = (s: Story, userId: string, projectId: string) => ({
   synopsis: s.synopsis,
   era_id: s.eraId,
   chapter_order: s.chapterOrder,
+  sections: s.sections ?? [],
   gdoc: s.gdoc ?? null,
   updated_at: iso(s.updatedAt),
 });
@@ -179,6 +189,8 @@ const chapterRow = (c: Chapter, userId: string) => ({
   content: c.content,
   word_count: c.wordCount,
   status: c.status,
+  section_id: c.sectionId ?? null,
+  recap: c.recap ?? null,
   updated_at: iso(c.updatedAt),
 });
 
@@ -196,8 +208,8 @@ export async function syncWriting(userId: string, projectId: string, lastSyncAt:
   const local = writingDb();
 
   const [{ data: sRows, error: sErr }, { data: cRows, error: cErr }, localStories, localChapters] = await Promise.all([
-    db.from("stories").select("id,title,synopsis,era_id,chapter_order,gdoc,updated_at").eq("owner_id", userId),
-    db.from("chapters").select("id,story_id,title,content,word_count,status,updated_at").eq("owner_id", userId),
+    db.from("stories").select(STORY_COLS).eq("owner_id", userId),
+    db.from("chapters").select(CHAPTER_COLS).eq("owner_id", userId),
     local.stories.toArray(),
     local.chapters.toArray(),
   ]);

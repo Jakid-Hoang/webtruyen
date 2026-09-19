@@ -19,18 +19,36 @@ export interface GDocLink {
   autoSync?: boolean;
 }
 
+/** Thư mục phần truyện: “Phần 1”, “Quyển Hạ”, “Ngoại truyện”. */
+export interface Section {
+  id: string;
+  name: string;
+}
+
 export interface Story {
   id: string;
   title: string;
   synopsis: string;
   eraId: string;
   chapterOrder: string[];
+  sections?: Section[];
   gdoc?: GDocLink;
   createdAt: number;
   updatedAt: number;
 }
 
 export type ChapterStatus = "draft" | "done";
+
+/** Tóm tắt cốt truyện của một chương. “open” là ô quan trọng nhất: câu hỏi chưa trả lời. */
+export interface Recap {
+  hook: string;
+  pov: string;
+  main: string;
+  change: string;
+  open: string;
+}
+
+export const EMPTY_RECAP: Recap = { hook: "", pov: "", main: "", change: "", open: "" };
 
 export interface Chapter {
   id: string;
@@ -39,6 +57,9 @@ export interface Chapter {
   content: JSONContent;
   wordCount: number;
   status: ChapterStatus;
+  /** null hoặc thiếu = chưa xếp vào phần nào. */
+  sectionId?: string | null;
+  recap?: Recap;
   updatedAt: number;
 }
 
@@ -142,6 +163,64 @@ export async function patchGDoc(storyId: string, fields: Partial<GDocLink>) {
 
 export async function updateChapter(chapterId: string, patch: Partial<Chapter>) {
   await writingDb().chapters.update(chapterId, { ...patch, updatedAt: Date.now() });
+}
+
+/** Ghi một ô tóm tắt, giữ nguyên các ô còn lại. */
+export async function setRecapField(chapterId: string, field: keyof Recap, value: string) {
+  await writingDb()
+    .chapters.where("id")
+    .equals(chapterId)
+    .modify((c) => {
+      c.recap = { ...EMPTY_RECAP, ...c.recap, [field]: value };
+      c.updatedAt = Date.now();
+    });
+}
+
+/* ── Thư mục phần truyện ── */
+
+export async function addSection(storyId: string, name: string): Promise<string> {
+  const id = genId("sec");
+  await writingDb()
+    .stories.where("id")
+    .equals(storyId)
+    .modify((s) => {
+      s.sections = [...(s.sections ?? []), { id, name }];
+      s.updatedAt = Date.now();
+    });
+  return id;
+}
+
+export async function renameSection(storyId: string, sectionId: string, name: string) {
+  await writingDb()
+    .stories.where("id")
+    .equals(storyId)
+    .modify((s) => {
+      s.sections = (s.sections ?? []).map((x) => (x.id === sectionId ? { ...x, name } : x));
+      s.updatedAt = Date.now();
+    });
+}
+
+/** Xoá phần: chương bên trong thành “chưa xếp”, KHÔNG xoá chương. */
+export async function deleteSection(storyId: string, sectionId: string) {
+  const db = writingDb();
+  await db.transaction("rw", db.stories, db.chapters, async () => {
+    await db.stories
+      .where("id")
+      .equals(storyId)
+      .modify((s) => {
+        s.sections = (s.sections ?? []).filter((x) => x.id !== sectionId);
+        s.updatedAt = Date.now();
+      });
+    await db.chapters
+      .where("storyId")
+      .equals(storyId)
+      .modify((c) => {
+        if (c.sectionId === sectionId) {
+          c.sectionId = null;
+          c.updatedAt = Date.now();
+        }
+      });
+  });
 }
 
 /** Chapters of a story in reading order (orphans appended). */

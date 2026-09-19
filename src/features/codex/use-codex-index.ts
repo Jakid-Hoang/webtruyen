@@ -4,13 +4,16 @@ import { useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { buildIndex, toParas, type CodexIndex, type IndexChapter } from "@/lib/codex/algorithms";
 import { docToText } from "@/lib/writing/convert";
-import { writingDb, type Chapter } from "@/lib/writing/db";
+import { writingDb, type Chapter, type Section } from "@/lib/writing/db";
 import { useCodex } from "@/store/codex-store";
 
+/** Chương đã tách đoạn, kèm bản ghi gốc để các trang khác dùng (tóm tắt, phần truyện). */
+export type IndexedChapter = IndexChapter & { row: Chapter; sectionId: string | null; recap?: Chapter["recap"] };
+
 export interface StoryChapters {
-  stories: { id: string; title: string; chapters: IndexChapter[] }[];
+  stories: { id: string; title: string; sections: Section[]; chapters: IndexedChapter[] }[];
   /** Mọi chương của mọi truyện, theo thứ tự truyện rồi thứ tự chương. */
-  chapters: IndexChapter[];
+  chapters: IndexedChapter[];
 }
 
 /** Đọc toàn bộ chương từ IndexedDB và tách đoạn; tự cập nhật khi chương được lưu. */
@@ -27,7 +30,18 @@ export function useStoryChapters(): StoryChapters | undefined {
       return {
         id: s.id,
         title: s.title,
-        chapters: ordered.map((c, ci) => ({ id: c.id, storyId: s.id, storyTitle: s.title, ci, title: c.title, paras: toParas(docToText(c.content)) })),
+        sections: s.sections ?? [],
+        chapters: ordered.map((c, ci) => ({
+          id: c.id,
+          storyId: s.id,
+          storyTitle: s.title,
+          ci,
+          title: c.title,
+          paras: toParas(docToText(c.content)),
+          row: c,
+          sectionId: c.sectionId ?? null,
+          recap: c.recap,
+        })),
       };
     });
     return { stories: out, chapters: out.flatMap((s) => s.chapters) };
