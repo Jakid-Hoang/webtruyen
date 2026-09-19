@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { allTypes, entityHref, tdef } from "@/lib/codex/select";
-import { SEED_LIBRARIES, type SeedRow } from "@/lib/codex/seed-libraries";
+import { SEED_LIBRARIES, seedLibrary, type SeedRow } from "@/lib/codex/seed-libraries";
 import { fold } from "@/lib/text";
 import { cn } from "@/lib/utils";
 import { useCodex } from "@/store/codex-store";
@@ -91,13 +91,23 @@ function SearchBody({ onDone }: { onDone: () => void }) {
     if (library && n.length >= 2) {
       let budget = 8;
       for (const [k, rows] of Object.entries(library)) {
+        const lib = seedLibrary(k);
         const label = tdef(data, k)?.l ?? k;
         let found = 0;
         for (let i = 0; i < rows.length && found < 2 && budget > 0; i++) {
-          if (!fold(rows[i][0]).includes(n)) continue;
+          // Tên mẫu là tiếng Anh nên phải khớp cả dòng mô tả tiếng Việt.
+          const gloss = lib && lib.glossCol >= 0 ? rows[i][lib.glossCol] : "";
+          if (!has(rows[i][0], gloss)) continue;
           found++;
           budget--;
-          push({ key: `lib:${k}:${i}`, category: `Thư viện mẫu · ${label}`, icon: "📚", title: rows[i][0], sub: rows[i][1], href: `/library/${k}?open=${i}` });
+          push({
+            key: `lib:${k}:${i}`,
+            category: `Thư viện mẫu · ${label}`,
+            icon: "📚",
+            title: rows[i][0],
+            sub: gloss || rows[i][lib?.folderCol ?? 1],
+            href: `/library/${k}?open=${i}`,
+          });
         }
       }
     }

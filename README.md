@@ -19,13 +19,25 @@ npm run dev                  # http://localhost:3000
 | `src/lib/codex/types.ts` | **`TYPES`** — 15 loại mục khai báo bằng dữ liệu. Thêm loại mục = thêm một object, không viết trang riêng |
 | `src/lib/codex/schema.ts` | Schema zod của `S` (world, eras, elements, counters, ent, custom, ignore), đọc được JSON Codex |
 | `src/lib/codex/algorithms.ts` | Chép nguyên từ Codex: **`buildIndex`** (chỉ mục tự động), **`candidates`** (dò tên lạ + danh sách `STOP`), **`mix`** (hợp thành skill), **`check`** (kiểm tra mâu thuẫn). Đã chỉnh cho tiếng Việt — đừng viết lại |
-| `src/data/skill-seed.json`, `src/data/seeds/*.json` | **Thư viện mẫu**: 914 skill (`SKILL_SEED` của Codex) + 970 mẫu cho 11 loại khác (vùng đất, chủng tộc, cấp bậc, quái vật, thần hệ, thế lực, trường phái, thần khí, vật phẩm, lãnh vực, khế ước). **Chỉ đọc**; “Đưa vào truyện” tạo bản sao. Khai báo cột ở `src/lib/codex/seed-libraries.ts`, một trang dùng chung cho cả 12 thư viện |
+| `src/data/skill-seed.json`, `src/data/seeds/*.json` | **Thư viện mẫu** cho 13 loại mục. Định dạng v1.6: `[tên (tiếng Anh), gloss (một dòng tiếng Việt), thư mục "01 …", …]`; riêng kho skill là định dạng cũ, không có gloss. **Chỉ đọc**; “Đưa vào truyện” tạo bản sao. Khai báo cột ở `src/lib/codex/seed-libraries.ts` — thêm thư viện mới = một dòng cấu hình + một file JSON, không sửa giao diện |
+| `src/lib/codex/name-gen.ts`, `src/data/name-banks.json` | Máy đặt tên: kho âm, biệt hiệu, khuôn tên theo từng loại mục |
 | `src/store/codex-store.ts` | Store wiki + hoàn tác, dọn liên kết khi xoá |
 | `src/features/codex/*` | Trang thế giới & hệ, trang chung cho mọi loại mục, đọc & kiểm tra, dò tên lạ, thư viện skill, hợp thành, thống kê |
 | `docs/` | `BANGIAO.md` (tài liệu bàn giao) và `codex.html` (bản gốc JS thuần) để tham khảo |
 | `src/lib/writing/*` | Viết truyện: lưu trữ (Dexie), chuyển đổi HTML/DOCX/MD/TXT, Google Drive |
 | `src/features/writing/*` | Giao diện viết truyện: danh sách chương, editor Tiptap, panel wiki, nhập/xuất |
 | `src/app/api/gdoc` | Đọc Google Doc công khai (chạy phía server vì CORS) |
+
+### Tên và mô tả một dòng (chuẩn v1.6)
+
+Mỗi mục có `name` (tiếng Anh, hiện to) và `gloss` (một dòng tiếng Việt, hiện nhỏ ngay dưới).
+**`gloss` không phải bản dịch của `name`**: tên nói nó *tên gì*, gloss nói nó *là cái gì*.
+
+| Sai — dịch tên | Sai — Hán Việt chồng chất | Đúng |
+|---|---|---|
+| `Lũng Sắt` | `Thiết Cốc Trấn` | `Thị trấn mỏ sắt đã cạn, dân bỏ đi quá nửa` |
+
+Chi tiết và chuẩn viết thư viện: `docs/THAY-DOI-TOI-NAY.md`.
 
 **Kiểm thử nhanh sau mỗi lần sửa:** làm theo `docs/BANGIAO.md` §9 (Lyra 3 lần · 1 chương, dò tên lạ không ra “Nhưng”, thư mục Boss = 32 thẻ, bốc ngẫu nhiên = 12, xuất/nạp JSON y nguyên).
 
