@@ -43,3 +43,6 @@ next-env.d.ts
 
 # nhật ký chạy dev cục bộ
 dev.log
+
+# file tạm khi soạn thư viện mẫu
+src/data/seeds/_parts/
