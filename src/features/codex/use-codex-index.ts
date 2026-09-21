@@ -11,7 +11,7 @@ import { useCodex } from "@/store/codex-store";
 export type IndexedChapter = IndexChapter & { row: Chapter; sectionId: string | null; recap?: Chapter["recap"] };
 
 export interface StoryChapters {
-  stories: { id: string; title: string; sections: Section[]; chapters: IndexedChapter[] }[];
+  stories: { id: string; title: string; synopsis: string; sections: Section[]; chapters: IndexedChapter[] }[];
   /** Mọi chương của mọi truyện, theo thứ tự truyện rồi thứ tự chương. */
   chapters: IndexedChapter[];
 }
@@ -30,6 +30,7 @@ export function useStoryChapters(): StoryChapters | undefined {
       return {
         id: s.id,
         title: s.title,
+        synopsis: s.synopsis,
         sections: s.sections ?? [],
         chapters: ordered.map((c, ci) => ({
           id: c.id,

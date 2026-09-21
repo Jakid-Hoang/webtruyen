@@ -43,12 +43,16 @@ export type ChapterStatus = "draft" | "done";
 export interface Recap {
   hook: string;
   pov: string;
+  /** Chương này thuộc tuyến truyện nào (vd “Tuyến A”, “Hội tụ”). */
+  track: string;
   main: string;
   change: string;
   open: string;
+  /** Chương này mọc ra từ đâu: tư liệu gốc, lore, chương cũ. */
+  origin: string;
 }
 
-export const EMPTY_RECAP: Recap = { hook: "", pov: "", main: "", change: "", open: "" };
+export const EMPTY_RECAP: Recap = { hook: "", pov: "", track: "", main: "", change: "", open: "", origin: "" };
 
 export interface Chapter {
   id: string;

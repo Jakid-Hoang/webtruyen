@@ -7,12 +7,13 @@ import { EmptyState, PageHeader } from "@/components/kit/page";
 import { useCodexIndex } from "@/features/codex/use-codex-index";
 import { readHref } from "@/features/codex/use-codex-index";
 import { entityHref, entityName } from "@/lib/codex/select";
-import { setRecapField, EMPTY_RECAP, type Chapter, type Recap, type Section } from "@/lib/writing/db";
+import { setRecapField, updateStory, EMPTY_RECAP, type Chapter, type Recap, type Section } from "@/lib/writing/db";
 import { useCodex } from "@/store/codex-store";
 
 /**
- * Trang tổng hợp cốt truyện: mỗi chương một thẻ năm ô. Ô “Câu hỏi còn treo” là ô
- * quan trọng nhất — nó cho thấy chương nào mở ra câu hỏi mà chưa chương nào trả lời.
+ * Trang tổng hợp cốt truyện: mỗi truyện một ô tổng quan, mỗi chương một thẻ. Ô
+ * “Câu hỏi còn treo” là ô quan trọng nhất — nó cho thấy chương nào mở ra câu hỏi
+ * mà chưa chương nào trả lời. “Đầu mối gốc” ghi chương mọc ra từ tư liệu nào.
  */
 function ChapterCard({ chapter, number, storyId }: { chapter: Chapter; number: number; storyId: string }) {
   const data = useCodex((s) => s.data);
@@ -35,9 +36,10 @@ function ChapterCard({ chapter, number, storyId }: { chapter: Chapter; number: n
           </Link>
         </span>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-3">
         <TextField label="Móc câu mở đầu" value={r.hook} onCommit={set("hook")} placeholder="Câu khiến người đọc muốn đọc tiếp" />
         <TextField label="Góc nhìn" value={r.pov} onCommit={set("pov")} placeholder="Kể từ mắt ai" />
+        <TextField label="Tuyến truyện" value={r.track} onCommit={set("track")} placeholder="Tuyến A, Tuyến B, Hội tụ…" />
       </div>
       <AreaField label="Diễn biến chính" value={r.main} onCommit={set("main")} placeholder="Chuyện gì xảy ra, theo thứ tự" rows={3} />
       <div className="grid gap-3 sm:grid-cols-2">
@@ -50,6 +52,13 @@ function ChapterCard({ chapter, number, storyId }: { chapter: Chapter; number: n
         />
         <AreaField label="Câu hỏi còn treo" value={r.open} onCommit={set("open")} placeholder="Thứ chưa giải thích, cần trả lời ở chương sau" rows={3} />
       </div>
+      <AreaField
+        label="Đầu mối gốc"
+        value={r.origin}
+        onCommit={set("origin")}
+        placeholder="Chương này mọc ra từ đâu: tư liệu gốc, lore, chương cũ"
+        rows={3}
+      />
       {chars.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
           {chars.map((id) => (
@@ -102,6 +111,15 @@ export function RecapPage() {
         return (
           <div key={story.id} className="grid gap-4">
             {ix.source.stories.length > 1 && <h2 className="text-xl font-extrabold">{story.title}</h2>}
+            <section className="grid gap-3 rounded-xl border bg-card p-4">
+              <AreaField
+                label="Tổng quan truyện"
+                value={story.synopsis}
+                onCommit={(v) => void updateStory(story.id, { synopsis: v })}
+                placeholder="Tình hình chung, các tuyến truyện, trục xung đột, thứ tự đọc — thứ không thuộc riêng chương nào"
+                rows={8}
+              />
+            </section>
             {sections.map((s) =>
               group(s.id).length ? (
                 <div key={s.id} className="grid gap-3">
