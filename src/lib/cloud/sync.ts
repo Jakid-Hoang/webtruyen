@@ -33,6 +33,12 @@ export interface CloudMeta {
   version: number;
   /** Thời điểm đồng bộ gần nhất (ms). */
   lastSyncAt: number;
+  /**
+   * Chỉ tăng khi trộn truyện CHẠY XONG. Dùng riêng cho việc đoán “đã bị xoá”:
+   * nếu máy này chưa trộn truyện lần nào thì không được phép xoá gì trên mạng,
+   * dù wiki đã đồng bộ nhiều lần rồi.
+   */
+  writingSyncedAt?: number;
   userId: string;
 }
 
@@ -85,8 +91,24 @@ interface ChapterRow {
   updated_at: string;
 }
 
-const STORY_COLS = "id,title,synopsis,era_id,chapter_order,sections,gdoc,updated_at";
+/*
+ * Máy chủ có thể cũ hơn app: ba cột của v1.6 (sections, section_id, recap) chỉ
+ * có sau khi chạy migration 0002. Thiếu chúng thì vẫn đồng bộ phần còn lại chứ
+ * không được gãy toàn bộ — chỉ mất riêng thư mục phần truyện và ô tóm tắt.
+ */
+const STORY_COLS_BASE = "id,title,synopsis,era_id,chapter_order,gdoc,updated_at";
+const STORY_COLS = `id,title,synopsis,era_id,chapter_order,sections,gdoc,updated_at`;
+const CHAPTER_COLS_BASE = "id,story_id,title,content,word_count,status,updated_at";
 const CHAPTER_COLS = "id,story_id,title,content,word_count,status,section_id,recap,updated_at";
+
+/** null = chưa biết, true = máy chủ đã có cột mới, false = máy chủ còn cũ. */
+let extendedSchema: boolean | null = null;
+
+/** Máy chủ đang thiếu cột của v1.6 (người dùng chưa chạy migration 0002). */
+export const schemaOutdated = () => extendedSchema === false;
+
+const isMissingColumn = (e: { code?: string; message?: string } | null) =>
+  !!e && (e.code === "42703" || /column .* does not exist/i.test(e.message ?? ""));
 
 const ms = (iso: string) => new Date(iso).getTime();
 const iso = (n: number) => new Date(n).toISOString();
@@ -176,7 +198,8 @@ const storyRow = (s: Story, userId: string, projectId: string) => ({
   synopsis: s.synopsis,
   era_id: s.eraId,
   chapter_order: s.chapterOrder,
-  sections: s.sections ?? [],
+  // Máy chủ chưa có cột thì bỏ hẳn khỏi câu ghi, nếu không cả lần ghi sẽ hỏng.
+  ...(extendedSchema === false ? {} : { sections: s.sections ?? [] }),
   gdoc: s.gdoc ?? null,
   updated_at: iso(s.updatedAt),
 });
@@ -189,8 +212,7 @@ const chapterRow = (c: Chapter, userId: string) => ({
   content: c.content,
   word_count: c.wordCount,
   status: c.status,
-  section_id: c.sectionId ?? null,
-  recap: c.recap ?? null,
+  ...(extendedSchema === false ? {} : { section_id: c.sectionId ?? null, recap: c.recap ?? null }),
   updated_at: iso(c.updatedAt),
 });
 
@@ -207,18 +229,40 @@ export async function syncWriting(userId: string, projectId: string, lastSyncAt:
   if (!db) throw new Error("Chưa cấu hình Supabase.");
   const local = writingDb();
 
-  const [{ data: sRows, error: sErr }, { data: cRows, error: cErr }, localStories, localChapters] = await Promise.all([
-    db.from("stories").select(STORY_COLS).eq("owner_id", userId),
-    db.from("chapters").select(CHAPTER_COLS).eq("owner_id", userId),
+  /** Đọc một bảng, tự lùi về bộ cột cũ nếu máy chủ chưa có cột mới. */
+  const fetchRows = async <T,>(table: string, full: string, base: string): Promise<T[]> => {
+    if (extendedSchema !== false) {
+      const { data, error } = await db.from(table).select(full).eq("owner_id", userId);
+      if (!error) {
+        extendedSchema = true;
+        return data as T[];
+      }
+      if (!isMissingColumn(error)) throw new Error(error.message);
+      syncLog(`máy chủ chưa có cột mới ở bảng ${table}, dùng bộ cột cũ`);
+      extendedSchema = false;
+    }
+    const { data, error } = await db.from(table).select(base).eq("owner_id", userId);
+    if (error) throw new Error(error.message);
+    return data as T[];
+  };
+
+  const [sRows, cRows, localStories, localChapters] = await Promise.all([
+    fetchRows<StoryRow>("stories", STORY_COLS, STORY_COLS_BASE),
+    fetchRows<ChapterRow>("chapters", CHAPTER_COLS, CHAPTER_COLS_BASE),
     local.stories.toArray(),
     local.chapters.toArray(),
   ]);
-  if (sErr) throw new Error(sErr.message);
-  if (cErr) throw new Error(cErr.message);
 
   const report: WritingSyncReport = { pulled: 0, pushed: 0, deletedLocal: 0, deletedRemote: 0 };
-  const remoteStories = new Map((sRows as StoryRow[]).map((r) => [r.id, r]));
-  const remoteChapters = new Map((cRows as ChapterRow[]).map((r) => [r.id, r]));
+  /*
+   * Chỉ được coi một dòng là “người dùng đã xoá” khi máy này từng trộn truyện
+   * xong ít nhất một lần và đang thật sự giữ truyện. Máy mới, hoặc máy chưa
+   * kéo được chương nào về (vd máy chủ thiếu cột), không được xoá gì.
+   */
+  const mayDelete = lastSyncAt > 0 && localStories.length > 0;
+  if (!mayDelete) syncLog("chưa từng trộn truyện xong trên máy này — không xoá gì trên máy chủ");
+  const remoteStories = new Map(sRows.map((r) => [r.id, r]));
+  const remoteChapters = new Map(cRows.map((r) => [r.id, r]));
   const localStoryMap = new Map(localStories.map((s) => [s.id, s]));
   const localChapterMap = new Map(localChapters.map((c) => [c.id, c]));
 
@@ -241,7 +285,7 @@ export async function syncWriting(userId: string, projectId: string, lastSyncAt:
     if (localStoryMap.has(id)) continue;
     // Có trên mạng, không có ở máy: mới thêm ở máy khác thì kéo về, còn nếu đã
     // tồn tại từ trước lần đồng bộ gần nhất thì là mình vừa xoá → xoá nốt.
-    if (ms(r.updated_at) > lastSyncAt) storiesToSave.push(toStory(r));
+    if (!mayDelete || ms(r.updated_at) > lastSyncAt) storiesToSave.push(toStory(r));
     else storiesToDeleteRemote.push(id);
   }
   for (const c of localChapters) {
@@ -252,7 +296,7 @@ export async function syncWriting(userId: string, projectId: string, lastSyncAt:
   }
   for (const [id, r] of remoteChapters) {
     if (localChapterMap.has(id)) continue;
-    if (ms(r.updated_at) > lastSyncAt) chaptersToSave.push(toChapter(r));
+    if (!mayDelete || ms(r.updated_at) > lastSyncAt) chaptersToSave.push(toChapter(r));
     else chaptersToDeleteRemote.push(id);
   }
   // Chương của truyện đã bị xoá hẳn thì bỏ theo.

@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cloud, cloudConfigured } from "@/lib/cloud/client";
-import { pushWiki, readMeta, syncAll, syncLog, syncWriting, writeMeta, type CloudMeta, type SyncChoice } from "@/lib/cloud/sync";
+import { pushWiki, readMeta, schemaOutdated, syncAll, syncLog, syncWriting, writeMeta, type CloudMeta, type SyncChoice } from "@/lib/cloud/sync";
 import { normalizeCodex } from "@/lib/codex/schema";
 import { saveLocal } from "@/lib/persistence/local";
 import { writingDb } from "@/lib/writing/db";
@@ -49,7 +49,7 @@ export function useCloudSync() {
       if (cancelled) return;
       cs({ status: "error", error: e instanceof Error ? e.message : String(e) });
     };
-    const done = () => cs({ status: "synced", lastSyncAt: Date.now(), error: null });
+    const done = () => cs({ status: "synced", lastSyncAt: Date.now(), error: null, schemaOutdated: schemaOutdated() });
 
     /** Vòng đồng bộ đầy đủ (lần đầu, và khi người dùng đã chọn giữ bản nào). */
     const full = async (choice: SyncChoice = "auto") => {
@@ -180,9 +180,9 @@ export function useCloudSync() {
       if (!meta || cancelled) return;
       cs({ status: "syncing" });
       try {
-        await syncWriting(userId, meta.projectId, meta.lastSyncAt);
+        await syncWriting(userId, meta.projectId, meta.writingSyncedAt ?? 0);
         if (cancelled) return;
-        meta = { ...meta, lastSyncAt: Date.now() };
+        meta = { ...meta, lastSyncAt: Date.now(), writingSyncedAt: Date.now() };
         writeMeta(meta);
         done();
       } catch (e) {

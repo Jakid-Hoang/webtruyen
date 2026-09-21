@@ -109,6 +109,7 @@ export function AccountMenu() {
   const cloudStatus = useCloud((s) => s.status);
   const lastSyncAt = useCloud((s) => s.lastSyncAt);
   const cloudError = useCloud((s) => s.error);
+  const outdated = useCloud((s) => s.schemaOutdated);
   const [open, setOpen] = useState(false);
 
   if (!cloudConfigured) return null;
@@ -131,6 +132,12 @@ export function AccountMenu() {
       <DropdownMenuContent align="end" className="w-64">
         <p className="truncate px-2 py-1.5 text-xs text-muted-foreground">{user?.email}</p>
         <p className="px-2 pb-1.5 text-xs text-muted-foreground">{syncText(cloudStatus, lastSyncAt, cloudError)}</p>
+        {outdated && (
+          <p className="px-2 pb-1.5 text-xs text-amber-600 dark:text-amber-400">
+            Máy chủ còn thiếu cột mới: phần truyện và tóm tắt chỉ lưu trên máy này. Chạy file
+            supabase/migrations/0002 trong Supabase để đồng bộ nốt.
+          </p>
+        )}
         <DropdownMenuItem
           onClick={() => {
             void signOut();
