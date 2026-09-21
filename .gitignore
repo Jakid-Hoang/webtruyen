@@ -46,3 +46,6 @@ dev.log
 
 # file tạm khi soạn thư viện mẫu
 src/data/seeds/_parts/
+
+# Bản thảo truyện của tác giả — không đẩy lên GitHub.
+docs/shinna/
