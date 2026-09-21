@@ -53,11 +53,20 @@ create index if not exists chapters_owner_idx on public.chapters (owner_id);
 
 -- ── Tự cập nhật updated_at / version ─────────────────────────────────────────
 
+-- Hai hàm chứ không một: PostgreSQL phải hiểu new.data ngay khi dịch câu lệnh,
+-- nên một hàm dùng chung cho cả ba bảng sẽ chết ở stories/chapters (xem 0003).
 create or replace function public.touch_row() returns trigger
 language plpgsql as $$
 begin
   new.updated_at := now();
-  if tg_table_name = 'projects' and new.data is distinct from old.data then
+  return new;
+end $$;
+
+create or replace function public.touch_project() returns trigger
+language plpgsql as $$
+begin
+  new.updated_at := now();
+  if new.data is distinct from old.data then
     new.version := old.version + 1;
   end if;
   return new;
@@ -65,7 +74,7 @@ end $$;
 
 drop trigger if exists projects_touch on public.projects;
 create trigger projects_touch before update on public.projects
-  for each row execute function public.touch_row();
+  for each row execute function public.touch_project();
 
 drop trigger if exists stories_touch on public.stories;
 create trigger stories_touch before update on public.stories
